@@ -19,8 +19,17 @@ configureReanimatedLogger({
     strict: false,
 });
 
+/**
+ * Static web export (`expo export`) không copy font từ `node_modules/@expo/vector-icons/...`
+ * vào `dist/assets/node_modules/...` → request .ttf 404 → icon thành ô vuông trên Vercel.
+ * Preload font từ `assets/fonts/` để Metro đưa file .ttf vào bản build.
+ */
 export default function RootLayout() {
-    const [loaded, error] = useFonts({});
+    const [loaded, error] = useFonts({
+        ionicons: require('../assets/fonts/Ionicons.ttf'),
+        FontAwesome: require('../assets/fonts/FontAwesome.ttf'),
+        'material-community': require('../assets/fonts/MaterialCommunityIcons.ttf'),
+    });
 
     useEffect(() => {
         setupAxios().catch(console.warn);
