@@ -11,6 +11,7 @@ export default {
         userInterfaceStyle: "automatic",
         newArchEnabled: true,
         ios: {
+            bundleIdentifier: "com.thachtaki.thach",
             infoPlist: {
               NSPhotoLibraryUsageDescription: "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh nhóm.",
               // HTTP tới IP LAN (backend dev) — không có thì iOS có thể chặn, axios báo Network Error.
@@ -20,6 +21,7 @@ export default {
             }
         },
         android: {
+            package: "com.thachtaki.thach",
             adaptiveIcon: {
                 foregroundImage: "./resources/assets/images/adaptive-icon.png",
                 backgroundColor: "#ffffff"
@@ -67,6 +69,9 @@ export default {
             typedRoutes: true
         },
         extra: {
+            eas: {
+                projectId: "fc738156-272a-479a-83f1-08d02d3c78b7",
+            },
             HOST_BE: process.env.HOST_BE,
             PORT_BE: process.env.PORT_BE,
         },

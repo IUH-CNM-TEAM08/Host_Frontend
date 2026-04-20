@@ -342,7 +342,20 @@ export const conversationService = {
       return { success: false, message: e?.message || 'Lỗi bỏ ghim' };
     }
   },
-
+  reorderPinnedMessages: async (conversationId: string, orderedMessageIds: string[]) => {
+    const messageIds = Array.isArray(orderedMessageIds)
+      ? orderedMessageIds.map((id) => String(id ?? '').trim()).filter(Boolean)
+      : [];
+    const res: any = await put<any>(
+      `/api/messages/conversation/${encodeURIComponent(conversationId)}/pinned/order`,
+      { messageIds },
+    );
+    return {
+      success: res?.success ?? true,
+      message: res?.message,
+      data: unwrapData<any>(res),
+    };
+  },
   /**
    * Đặt/xoá biệt danh thành viên trong group.
    * - Admin/Owner: đặt cho bất kỳ ai
