@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+  <title>Zala Health</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f9ff;min-height:100vh}
+    .spin{width:36px;height:36px;border:3px solid #bae6fd;border-top-color:#0284c7;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px}
+    /* Screen */
+    .screen{display:none;flex-direction:column;min-height:100vh}
+    .screen.active{display:flex}
+    /* Header */
+    .header{background:linear-gradient(135deg,#0369a1,#0ea5e9);padding:48px 16px 20px;color:#fff;position:relative;overflow:hidden}
+    .header::before{content:'';position:absolute;top:-40px;right:-20px;width:150px;height:150px;background:rgba(255,255,255,.06);border-radius:50%}
+    .h-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;margin-bottom:16px}
+    .h-left h2{font-size:20px;font-weight:800}
+    .h-left p{font-size:13px;opacity:.8;margin-top:2px}
+    .avatar-wrap{display:flex;align-items:center;gap:8px}
+    .avatar-circle{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;overflow:hidden}
+    /* Stats strip */
+    .stats{background:rgba(255,255,255,.15);backdrop-filter:blur(6px);border-radius:12px;display:flex;position:relative;z-index:1}
+    .stat{flex:1;padding:10px;text-align:center;border-right:1px solid rgba(255,255,255,.2)}
+    .stat:last-child{border-right:none}
+    .stat-val{font-size:16px;font-weight:700}
+    .stat-lbl{font-size:10px;opacity:.75;margin-top:2px}
+    /* Search */
+    .search-wrap{padding:14px 16px 8px}
+    .search-box{background:#fff;border-radius:12px;display:flex;align-items:center;padding:0 12px;height:42px;gap:8px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+    .search-box input{flex:1;border:none;outline:none;font-size:14px;color:#374151}
+    .search-box input::placeholder{color:#9ca3af}
+    /* Specialties */
+    .spec-wrap{padding:0 16px 12px}
+    .sec-title{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+    .sec-title a{font-size:12px;color:#0284c7;text-decoration:none}
+    .spec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .spec-item{background:#fff;border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:all .15s}
+    .spec-item:active{transform:scale(.96)}
+    .spec-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
+    .spec-name{font-size:10px;font-weight:500;color:#374151}
+    /* Doctors */
+    .doctors-wrap{padding:0 16px 16px}
+    .doctor-card{background:#fff;border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.05);transition:transform .15s}
+    .doctor-card:active{transform:scale(.99)}
+    .doc-avatar{width:56px;height:56px;border-radius:16px;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+    .doc-info{flex:1}
+    .doc-name{font-size:14px;font-weight:600;color:#1e293b}
+    .doc-spec{font-size:12px;color:#0284c7;margin-top:2px}
+    .doc-meta{display:flex;align-items:center;gap:8px;margin-top:6px}
+    .doc-rating{display:flex;align-items:center;gap:3px;font-size:11px;color:#f59e0b;font-weight:600}
+    .doc-price{font-size:11px;color:#64748b}
+    .doc-avail{font-size:10px;background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:auto}
+    .book-btn-inline{background:#0284c7;border:none;border-radius:10px;padding:7px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+    /* Booking screen */
+    .screen-header{background:#fff;padding:52px 16px 14px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px}
+    .back-btn{width:34px;height:34px;border-radius:50%;background:#f0f9ff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .screen-title{font-size:16px;font-weight:600;color:#1e293b}
+    .booking-body{flex:1;padding:16px;background:#f0f9ff;overflow-y:auto}
+    .calendar-wrap{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .cal-month{font-size:14px;font-weight:600;color:#1e293b}
+    .cal-nav{display:flex;gap:8px}
+    .nav-btn{width:28px;height:28px;border-radius:8px;background:#f0f9ff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+    .cal-day-name{font-size:10px;color:#9ca3af;font-weight:500;padding:4px 0}
+    .cal-day{font-size:13px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:all .15s;color:#374151}
+    .cal-day:hover{background:#e0f2fe}
+    .cal-day.selected{background:#0284c7;color:#fff;font-weight:600}
+    .cal-day.today{font-weight:700;color:#0284c7}
+    .cal-day.disabled{color:#e2e8f0;cursor:default}
+    .time-wrap{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+    .time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .time-slot{padding:9px;border-radius:10px;border:1.5px solid #e2e8f0;text-align:center;font-size:13px;cursor:pointer;color:#374151;transition:all .15s}
+    .time-slot:hover{border-color:#0284c7;color:#0284c7}
+    .time-slot.selected{background:#0284c7;color:#fff;border-color:#0284c7;font-weight:600}
+    .time-slot.booked{background:#f8fafc;color:#cbd5e1;cursor:not-allowed;border-color:#f1f5f9}
+    .confirm-btn{width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#0369a1,#0ea5e9);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+    .confirm-btn:active{opacity:.9}
+    .success-card{background:#fff;border-radius:16px;padding:24px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:12px}
+    .success-icon{width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  </style>
+</head>
+<body>
+<div id="loading">
+  <div class="spin"></div>
+  <span style="color:#0284c7;font-size:14px;font-weight:500">Đang tải Zala Health...</span>
+</div>
+
+<!-- Main screen -->
+<div id="screen-main" class="screen">
+  <div class="header">
+    <div class="h-top">
+      <div class="h-left">
+        <h2>Zala Health</h2>
+        <p id="greeting-text">Chăm sóc sức khoẻ của bạn</p>
+      </div>
+      <div class="avatar-wrap">
+        <div class="avatar-circle" id="avatar-circle">?</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Lần khám</div></div>
+      <div class="stat"><div class="stat-val">1</div><div class="stat-lbl">Đang chờ</div></div>
+      <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">Điểm thưởng</div></div>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <svg width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input placeholder="Tìm bác sĩ, chuyên khoa..." />
+    </div>
+  </div>
+
+  <div style="overflow-y:auto;flex:1;padding-bottom:20px">
+    <div class="spec-wrap">
+      <div class="sec-title">Chuyên khoa <a href="#">Xem tất cả</a></div>
+      <div class="spec-grid">
+        <div class="spec-item" onclick="goBook()">
+          <div class="spec-icon" style="background:#fce7f3"><svg width="20" height="20" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <div class="spec-name">Tim mạch</div>
+        </div>
+        <div class="spec-item" onclick="goBook()">
+          <div class="spec-icon" style="background:#dbeafe"><svg width="20" height="20" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
+          <div class="spec-name">Nội khoa</div>
+        </div>
+        <div class="spec-item" onclick="goBook()">
+          <div class="spec-icon" style="background:#dcfce7"><svg width="20" height="20" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div class="spec-name">Nhi khoa</div>
+        </div>
+        <div class="spec-item" onclick="goBook()">
+          <div class="spec-icon" style="background:#fef3c7"><svg width="20" height="20" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg></div>
+          <div class="spec-name">Da liễu</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="doctors-wrap">
+      <div class="sec-title">Bác sĩ nổi bật <a href="#">Tất cả</a></div>
+      <div class="doctor-card" onclick="goBook()">
+        <div class="doc-avatar">👨‍⚕️</div>
+        <div class="doc-info">
+          <div class="doc-name">BS. Nguyễn Minh Tâm</div>
+          <div class="doc-spec">Tim mạch • BV Chợ Rẫy</div>
+          <div class="doc-meta">
+            <div class="doc-rating">★ 4.9 <span style="color:#64748b;font-weight:400">(214)</span></div>
+            <div class="doc-price">200K/lượt</div>
+            <div class="doc-avail">Còn chỗ</div>
+          </div>
+        </div>
+      </div>
+      <div class="doctor-card" onclick="goBook()">
+        <div class="doc-avatar">👩‍⚕️</div>
+        <div class="doc-info">
+          <div class="doc-name">BS. Trần Thị Lan Anh</div>
+          <div class="doc-spec">Nhi khoa • BV Nhi Đồng 1</div>
+          <div class="doc-meta">
+            <div class="doc-rating">★ 4.8 <span style="color:#64748b;font-weight:400">(187)</span></div>
+            <div class="doc-price">150K/lượt</div>
+            <div class="doc-avail">Còn chỗ</div>
+          </div>
+        </div>
+      </div>
+      <div class="doctor-card" onclick="goBook()">
+        <div class="doc-avatar">🧑‍⚕️</div>
+        <div class="doc-info">
+          <div class="doc-name">BS. Phạm Quốc Hùng</div>
+          <div class="doc-spec">Da liễu • Phòng khám Quốc tế</div>
+          <div class="doc-meta">
+            <div class="doc-rating">★ 4.7 <span style="color:#64748b;font-weight:400">(95)</span></div>
+            <div class="doc-price">300K/lượt</div>
+            <div class="doc-avail">Còn chỗ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Booking screen -->
+<div id="screen-book" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="goMain()"><svg width="16" height="16" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="screen-title">Đặt lịch khám</div>
+  </div>
+  <div class="booking-body">
+    <div id="booked-success" class="success-card" style="display:none">
+      <div class="success-icon"><svg width="32" height="32" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div style="font-size:17px;font-weight:700;color:#1e293b;margin-bottom:6px">Đặt lịch thành công!</div>
+      <div style="font-size:13px;color:#64748b" id="confirm-text">BS. Nguyễn Minh Tâm — Thứ 2, 09:00</div>
+      <div style="font-size:12px;color:#9ca3af;margin-top:6px">Mã đặt: #ZH24041501</div>
+    </div>
+    <div id="booking-form">
+      <div class="calendar-wrap">
+        <div class="cal-header">
+          <span class="cal-month">Tháng 4, 2025</span>
+          <div class="cal-nav">
+            <button class="nav-btn"><svg width="12" height="12" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <button class="nav-btn"><svg width="12" height="12" fill="none" stroke="#374151" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-day-name">CN</div><div class="cal-day-name">T2</div><div class="cal-day-name">T3</div><div class="cal-day-name">T4</div><div class="cal-day-name">T5</div><div class="cal-day-name">T6</div><div class="cal-day-name">T7</div>
+          <div class="cal-day disabled">30</div><div class="cal-day disabled">31</div><div class="cal-day disabled">1</div><div class="cal-day disabled">2</div><div class="cal-day disabled">3</div><div class="cal-day disabled">4</div><div class="cal-day disabled">5</div>
+          <div class="cal-day disabled">6</div><div class="cal-day disabled">7</div><div class="cal-day disabled">8</div><div class="cal-day disabled">9</div><div class="cal-day disabled">10</div><div class="cal-day disabled">11</div><div class="cal-day disabled">12</div>
+          <div class="cal-day disabled">13</div><div class="cal-day disabled">14</div><div class="cal-day today" onclick="selectDay(this)">15</div><div class="cal-day" onclick="selectDay(this)">16</div><div class="cal-day" onclick="selectDay(this)">17</div><div class="cal-day" onclick="selectDay(this)">18</div><div class="cal-day" onclick="selectDay(this)">19</div>
+          <div class="cal-day" onclick="selectDay(this)">20</div><div class="cal-day" onclick="selectDay(this)">21</div><div class="cal-day" onclick="selectDay(this)">22</div><div class="cal-day" onclick="selectDay(this)">23</div><div class="cal-day" onclick="selectDay(this)">24</div><div class="cal-day" onclick="selectDay(this)">25</div><div class="cal-day" onclick="selectDay(this)">26</div>
+        </div>
+      </div>
+      <div class="time-wrap">
+        <div class="sec-title" style="margin-bottom:0">Chọn giờ khám</div>
+        <div class="time-grid">
+          <div class="time-slot booked">07:30</div>
+          <div class="time-slot" onclick="selectTime(this)">08:00</div>
+          <div class="time-slot" onclick="selectTime(this)">08:30</div>
+          <div class="time-slot" onclick="selectTime(this)">09:00</div>
+          <div class="time-slot booked">09:30</div>
+          <div class="time-slot" onclick="selectTime(this)">10:00</div>
+          <div class="time-slot" onclick="selectTime(this)">10:30</div>
+          <div class="time-slot booked">11:00</div>
+          <div class="time-slot" onclick="selectTime(this)">14:00</div>
+          <div class="time-slot" onclick="selectTime(this)">14:30</div>
+          <div class="time-slot" onclick="selectTime(this)">15:00</div>
+          <div class="time-slot booked">15:30</div>
+        </div>
+      </div>
+      <button class="confirm-btn" onclick="confirmBook()">Xác nhận đặt lịch</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selDay = null, selTime = null;
+  function selectDay(el){ document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('selected')); el.classList.add('selected'); selDay=el.textContent; }
+  function selectTime(el){ document.querySelectorAll('.time-slot:not(.booked)').forEach(t=>t.classList.remove('selected')); el.classList.add('selected'); selTime=el.textContent; }
+  function confirmBook(){
+    if(!selDay||!selTime){ alert('Vui lòng chọn ngày và giờ khám!'); return; }
+    document.getElementById('confirm-text').textContent = `BS. Nguyễn Minh Tâm — Tháng 4/${selDay} lúc ${selTime}`;
+    document.getElementById('booking-form').style.display='none';
+    document.getElementById('booked-success').style.display='block';
+  }
+  function goBook(){ switchScreen('book'); }
+  function goMain(){ switchScreen('main'); }
+  function switchScreen(n){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-'+n).classList.add('active'); }
+  function initUser(data){
+    const { name, avatarURL } = data || {};
+    const ac = document.getElementById('avatar-circle');
+    if(avatarURL){ ac.style.backgroundImage=`url(${avatarURL})`; ac.style.backgroundSize='cover'; ac.style.backgroundPosition='center'; ac.textContent=''; }
+    else { ac.textContent=(name||'K')[0].toUpperCase(); }
+    document.getElementById('greeting-text').textContent = `Xin chào, ${(name||'Bạn').split(' ').pop()}!`;
+    document.getElementById('loading').style.display='none';
+    switchScreen('main');
+  }
+  window.onload = function(){
+    window.ReactNativeWebView?.postMessage(JSON.stringify({ type:'READY' }));
+    window.addEventListener('message', function(e){
+      try{ initUser(typeof e.data==='string'?JSON.parse(e.data):e.data); }catch(err){}
+    });
+    setTimeout(()=>{ if(document.getElementById('loading').style.display!=='none') initUser({name:'Demo',avatarURL:''}); },3000);
+  };
+</script>
+</body>
+</html>

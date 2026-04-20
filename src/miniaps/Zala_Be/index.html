@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+  <title>Zala Be</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0fdf4;min-height:100vh}
+    .spin{width:36px;height:36px;border:3px solid #bbf7d0;border-top-color:#16a34a;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px}
+    /* Header */
+    .header{background:linear-gradient(160deg,#15803d,#16a34a);padding:48px 20px 28px;color:#fff;position:relative;overflow:hidden}
+    .header::before{content:'';position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:rgba(255,255,255,.07);border-radius:50%}
+    .h-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;position:relative;z-index:1}
+    .h-user{display:flex;align-items:center;gap:10px}
+    .avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.4)}
+    .avatar-fb{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:16px;border:2px solid rgba(255,255,255,.4)}
+    .h-name{font-size:15px;font-weight:600}
+    .h-sub{font-size:12px;opacity:.8}
+    /* Destination card */
+    .dest-card{background:#fff;border-radius:16px;padding:14px 16px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.08);position:relative;z-index:1}
+    .dest-row{display:flex;align-items:center;gap:10px;color:#4b5563}
+    .dest-dot{width:10px;height:10px;border-radius:50%;background:#16a34a;flex-shrink:0}
+    .dest-placeholder{font-size:14px;color:#9ca3af}
+    /* Location bar */
+    .loc-bar{background:#fff;margin:0 16px;margin-top:-12px;border-radius:14px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:center;justify-content:space-between}
+    .loc-left{display:flex;align-items:center;gap:8px}
+    .loc-text{font-size:13px;color:#374151;font-weight:500}
+    .loc-sub{font-size:11px;color:#9ca3af;margin-top:1px}
+    .loc-btn{background:#dcfce7;border:none;border-radius:9px;padding:6px 12px;font-size:12px;color:#15803d;font-weight:600;cursor:pointer}
+    /* Services */
+    .services-wrap{padding:16px}
+    .sec-title{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:12px}
+    .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .service-card{background:#fff;border-radius:16px;padding:16px 8px 12px;text-align:center;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.05);transition:transform .15s,box-shadow .15s;border:1.5px solid transparent}
+    .service-card:active{transform:scale(.97)}
+    .service-card.selected{border-color:#16a34a;background:#f0fdf4}
+    .service-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
+    .service-name{font-size:12px;font-weight:600;color:#1e293b}
+    .service-eta{font-size:10px;color:#6b7280;margin-top:2px}
+    /* Promo strip */
+    .promo-strip{margin:0 16px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+    .promo-text h4{font-size:13px;font-weight:600;color:#15803d}
+    .promo-text p{font-size:11px;color:#4b5563;margin-top:2px}
+    .promo-code{background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;margin-left:auto;white-space:nowrap}
+    /* Book button */
+    .book-wrap{padding:16px}
+    .book-btn{width:100%;padding:15px;border-radius:16px;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+    .book-btn:active{opacity:.9}
+    .book-btn:disabled{background:#d1d5db;cursor:not-allowed}
+    /* Status */
+    .status-card{margin:16px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;display:none}
+    .status-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+    .status-title{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:4px}
+    .status-sub{font-size:13px;color:#6b7280}
+    .status-cancel{margin-top:14px;background:#fee2e2;border:none;border-radius:10px;padding:8px 20px;font-size:13px;color:#ef4444;font-weight:600;cursor:pointer}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    .pulse{animation:pulse 1.5s ease-in-out infinite}
+  </style>
+</head>
+<body>
+<div id="loading">
+  <div class="spin"></div>
+  <span style="color:#15803d;font-size:14px;font-weight:500">Đang tải Zala Be...</span>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="h-top">
+      <div class="h-user">
+        <div class="avatar-fb" id="avatar-fb">?</div>
+        <img class="avatar" id="avatar-img" src="" style="display:none"/>
+        <div>
+          <div class="h-name" id="user-name">Người dùng</div>
+          <div class="h-sub">Đang ở đâu hôm nay?</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.2);border-radius:20px;padding:4px 10px;font-size:12px;color:#fff;font-weight:600">
+        ⭐ 4.9
+      </div>
+    </div>
+    <div class="dest-card" onclick="selectDest()">
+      <div class="dest-row">
+        <div class="dest-dot"></div>
+        <span class="dest-placeholder">Bạn muốn đi đâu?</span>
+        <svg style="margin-left:auto" width="16" height="16" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location -->
+  <div class="loc-bar" id="loc-bar">
+    <div class="loc-left">
+      <svg width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <div>
+        <div class="loc-text" id="loc-text">Chưa xác định vị trí</div>
+        <div class="loc-sub" id="loc-sub">Nhấn để cập nhật</div>
+      </div>
+    </div>
+    <button class="loc-btn" onclick="requestLocation()">📍 Lấy vị trí</button>
+  </div>
+
+  <!-- Services -->
+  <div class="services-wrap">
+    <div class="sec-title">Dịch vụ</div>
+    <div class="services-grid">
+      <div class="service-card" id="svc-bike" onclick="selectService('bike')">
+        <div class="service-icon" style="background:#dcfce7">
+          <svg width="24" height="24" fill="none" stroke="#15803d" stroke-width="2" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 0 0 0-2h-1l-5 8H4"/><path d="M15 6l5 5h-5"/></svg>
+        </div>
+        <div class="service-name">Xe máy</div>
+        <div class="service-eta">~3 phút</div>
+      </div>
+      <div class="service-card" id="svc-car" onclick="selectService('car')">
+        <div class="service-icon" style="background:#dbeafe">
+          <svg width="24" height="24" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v3"/><circle cx="18" cy="17" r="2"/><circle cx="7" cy="17" r="2"/><rect x="9" y="11" width="13" height="10" rx="2"/></svg>
+        </div>
+        <div class="service-name">Ô tô</div>
+        <div class="service-eta">~5 phút</div>
+      </div>
+      <div class="service-card" id="svc-food" onclick="selectService('food')">
+        <div class="service-icon" style="background:#fef3c7">
+          <svg width="24" height="24" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        </div>
+        <div class="service-name">Đồ ăn</div>
+        <div class="service-eta">~20 phút</div>
+      </div>
+      <div class="service-card" id="svc-grocery" onclick="selectService('grocery')">
+        <div class="service-icon" style="background:#fce7f3">
+          <svg width="24" height="24" fill="none" stroke="#db2777" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div class="service-name">Mua hộ</div>
+        <div class="service-eta">~30 phút</div>
+      </div>
+      <div class="service-card" id="svc-express" onclick="selectService('express')">
+        <div class="service-icon" style="background:#f3e8ff">
+          <svg width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <div class="service-name">Giao hàng</div>
+        <div class="service-eta">~45 phút</div>
+      </div>
+      <div class="service-card" id="svc-more">
+        <div class="service-icon" style="background:#f1f5f9">
+          <svg width="24" height="24" fill="none" stroke="#64748b" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </div>
+        <div class="service-name">Thêm</div>
+        <div class="service-eta">Xem tất cả</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promo -->
+  <div class="promo-strip">
+    <svg width="24" height="24" fill="none" stroke="#15803d" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    <div class="promo-text">
+      <h4>Giảm 20% chuyến đầu</h4>
+      <p>Dùng mã khuyến mãi hôm nay</p>
+    </div>
+    <div class="promo-code">ZALA20</div>
+  </div>
+
+  <div class="book-wrap">
+    <button class="book-btn" id="book-btn" onclick="bookRide()" disabled>
+      <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Chọn dịch vụ
+    </button>
+  </div>
+
+  <!-- Status -->
+  <div class="status-card" id="status-card">
+    <div class="status-icon pulse" id="status-icon" style="background:#dcfce7">
+      <svg width="28" height="28" fill="none" stroke="#15803d" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="status-title" id="status-title">Đang tìm tài xế...</div>
+    <div class="status-sub" id="status-sub">Vui lòng chờ trong giây lát</div>
+    <button class="status-cancel" onclick="cancelRide()">Huỷ chuyến</button>
+  </div>
+</div>
+
+<script>
+  let hasLocation = false;
+  let selectedSvc = null;
+  const svcNames = { bike:'Xe máy', car:'Ô tô', food:'Đồ ăn', grocery:'Mua hộ', express:'Giao hàng' };
+
+  function requestLocation(){
+    window.ReactNativeWebView?.postMessage(JSON.stringify({ type:'REQUIRE_PERMISSIONS', data:'location' }));
+    document.getElementById('loc-text').textContent = 'Đang xác định vị trí...';
+  }
+
+  function selectService(id){
+    document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('svc-'+id)?.classList.add('selected');
+    selectedSvc = id;
+    const btn = document.getElementById('book-btn');
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Đặt ${svcNames[id]}`;
+  }
+
+  function selectDest(){
+    alert('Chọn điểm đến: tính năng bản đồ đang phát triển!');
+  }
+
+  function bookRide(){
+    if(!hasLocation){ requestLocation(); return; }
+    document.querySelector('.book-wrap').style.display = 'none';
+    document.getElementById('status-card').style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('status-title').textContent = '🚗 Tài xế đang đến!';
+      document.getElementById('status-sub').textContent = 'Nguyễn Văn A • Biển số 51A-123.45 • ~3 phút';
+      document.getElementById('status-icon').style.background = '#dcfce7';
+      document.querySelector('.pulse').style.animation = 'none';
+    }, 2500);
+  }
+
+  function cancelRide(){
+    document.getElementById('status-card').style.display = 'none';
+    document.querySelector('.book-wrap').style.display = 'block';
+  }
+
+  function initUser(data){
+    const { name, phone, avatarURL } = data || {};
+    document.getElementById('user-name').textContent = name || 'Khách';
+    if(avatarURL){
+      const img = document.getElementById('avatar-img');
+      img.src = avatarURL; img.style.display = 'block';
+      document.getElementById('avatar-fb').style.display = 'none';
+    } else {
+      document.getElementById('avatar-fb').textContent = (name||'K')[0].toUpperCase();
+    }
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+
+  window.onload = function(){
+    window.ReactNativeWebView?.postMessage(JSON.stringify({ type:'READY' }));
+    window.addEventListener('message', function(e){
+      try{
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if(data?.type === 'ACCEPT_PERMISSIONS' && data.data?.permission === 'location'){
+          hasLocation = true;
+          document.getElementById('loc-text').textContent = '📍 123 Nguyễn Huệ, Q.1, TP.HCM';
+          document.getElementById('loc-sub').textContent = 'Vị trí đã xác định';
+        } else if(data?.type === 'DENY_PERMISSIONS'){
+          document.getElementById('loc-text').textContent = '❌ Quyền vị trí bị từ chối';
+        } else {
+          initUser(data);
+        }
+      }catch(err){}
+    });
+    setTimeout(() => {
+      if(document.getElementById('loading').style.display !== 'none'){
+        initUser({ name:'Demo', phone:'0901234567', avatarURL:'' });
+      }
+    }, 3000);
+  };
+</script>
+</body>
+</html>
