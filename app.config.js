@@ -11,6 +11,7 @@ export default {
         userInterfaceStyle: "automatic",
         newArchEnabled: true,
         ios: {
+            bundleIdentifier: "com.thachtaki.thach",
             infoPlist: {
               NSPhotoLibraryUsageDescription: "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh nhóm.",
               // HTTP tới IP LAN (backend dev) — không có thì iOS có thể chặn, axios báo Network Error.
@@ -20,6 +21,7 @@ export default {
             }
         },
         android: {
+            package: "com.thachtaki.thach",
             adaptiveIcon: {
                 foregroundImage: "./resources/assets/images/adaptive-icon.png",
                 backgroundColor: "#ffffff"
@@ -32,6 +34,7 @@ export default {
             favicon: "./resources/assets/images/favicon.png"
         },
         plugins: [
+            "./plugins/withReactNativeCameraFix",
             "expo-router",
             [
                 "expo-splash-screen",
@@ -40,12 +43,6 @@ export default {
                     "imageWidth": 200,
                     "resizeMode": "contain",
                     "backgroundColor": "#ffffff"
-                }
-            ],
-            [
-                "expo-barcode-scanner",
-                {
-                    "cameraPermission": "Allow $(PRODUCT_NAME) to access camera."
                 }
             ],
             [
@@ -69,6 +66,9 @@ export default {
         extra: {
             HOST_BE: process.env.HOST_BE,
             PORT_BE: process.env.PORT_BE,
+            eas: {
+                projectId: "34106f8e-d605-4148-bf4a-d7a8a543f41a",
+            },
         },
     },
 };
