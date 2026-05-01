@@ -13,9 +13,10 @@ import { LiveKitRoom, RoomAudioRenderer, useRoomContext, useParticipants, useCha
 import { useUser } from '@/src/contexts/user/UserContext';
 import { useLiveRoom, ChatMessage } from '@/src/contexts/LiveRoomContext';
 import { billingService } from '@/src/api/services/billing.service';
+import { URL_BE } from '@/src/constants/ApiConstant';
 import '@livekit/components-styles';
 
-const BACKEND_URL = 'http://localhost:3000';
+const BACKEND_URL = URL_BE;
 const LIVEKIT_URL = 'wss://livestream-zala-8almwmwe.livekit.cloud';
 
 function LiveIcon({ name, size = 14, color = '#c4b5fd' }: { name: 'share' | 'users' | 'search' | 'chat' | 'mic' | 'camera' | 'screen' | 'end' | 'leave' | 'clock' | 'heart' | 'like' | 'shield' | 'spark' | 'trophy' | 'gift' | 'coin'; size?: number; color?: string }) {

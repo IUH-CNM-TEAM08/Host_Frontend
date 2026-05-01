@@ -3,6 +3,10 @@ import { NativeModules, Platform } from 'react-native';
 
 const RAW_HOST_BE = process.env.EXPO_PUBLIC_HOST_BE;
 const PORT_BE = process.env.EXPO_PUBLIC_PORT_BE;
+const RAW_HOST_BE_NORMALIZED = RAW_HOST_BE?.trim().replace(/\/$/, '');
+const ENV_BASE_URL = RAW_HOST_BE_NORMALIZED && /^https?:\/\//i.test(RAW_HOST_BE_NORMALIZED)
+  ? RAW_HOST_BE_NORMALIZED
+  : null;
 const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
 
 /**
@@ -43,7 +47,7 @@ function parseLanHostFromExpoDev(): string | null {
 // - Web localhost → host của trang (camera / mixed content).
 // - Native __DEV__: ưu tiên IP từ Expo (cùng máy dev), trừ khi EXPO_PUBLIC_FORCE_ENV_HOST=1.
 // - Android emulator + localhost trong .env → 10.0.2.2 (host loopback).
-let resolvedHost = RAW_HOST_BE ?? 'localhost';
+let resolvedHost = RAW_HOST_BE_NORMALIZED ?? 'localhost';
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     resolvedHost = window.location.hostname;
@@ -68,7 +72,7 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
   }
 }
 
-export const URL_BE = `http://${resolvedHost}:${PORT_BE}`;
+export const URL_BE = ENV_BASE_URL ?? `http://${resolvedHost}:${PORT_BE}`;
 /** Gốc public cho trang gọi WebRTC (tunnel Loophole, ngrok, …). Không dấu / cuối. Để trống thì dùng `URL_BE`. */
 function getWebrtcCallOrigin(): string {
 	const fromEnv = process.env.EXPO_PUBLIC_WEBRTC_CALL_ORIGIN?.trim().replace(/\/$/, "");

@@ -3,10 +3,9 @@
  * Dùng trong ZalaBotChatbox.tsx
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { URL_BE } from "@/src/constants/ApiConstant";
 
-const HOST = process.env.EXPO_PUBLIC_HOST_BE ?? "localhost";
-const PORT = process.env.EXPO_PUBLIC_PORT_BE ?? "3000";
-const BASE_URL = `http://${HOST}:${PORT}`;
+const BASE_URL = URL_BE;
 
 // Key đúng với AuthStorage trong app (src/constants/StorageKeyConstant.ts)
 const ACCESS_TOKEN_KEY = "@IUH_CNM_APP:accessToken";
