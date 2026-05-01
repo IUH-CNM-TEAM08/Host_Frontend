@@ -1,0 +1,150 @@
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import {ActivityIndicator, Platform, Text, TouchableOpacity, View} from "react-native";
+import {useRouter} from "expo-router";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import {Ionicons} from "@expo/vector-icons";
+import {Shadows} from "@/src/styles/Shadow";
+import QRCodeDisplay from "@/src/components/ui/QRCodeDisplay";
+import QRScanner from "@/src/components/ui/QRScanner";
+import {authService} from "@/src/api/services/auth.service";
+import {AuthStorage} from "@/src/storage/AuthStorage";
+import {useUser} from "@/src/contexts/user/UserContext";
+import { useTranslation } from "@/src/contexts/i18n/I18nContext";
+
+export default function QrCode() {
+    const [loading, setLoading] = useState(false);
+    const [qrValue, setQrValue] = useState("zala://login");
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const {refreshUserData} = useUser();
+    const { t } = useTranslation();
+
+    // Router
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+
+    useEffect(() => {
+        if (Platform.OS !== "web") {
+            router.replace("/(auth)");
+        }
+    }, [router]);
+
+    const startQrLogin = useCallback(async () => {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setLoading(true);
+        try {
+            const generated: any = await authService.generateQr();
+            const data = generated?.data ?? generated;
+            const nextQrId = data?.qrId || "";
+            const nextQrUrl = data?.qrUrl || (nextQrId ? `zala://login?qrId=${encodeURIComponent(nextQrId)}` : "zala://login");
+            setQrValue(nextQrUrl);
+
+            if (!nextQrId) return;
+            pollRef.current = setInterval(async () => {
+                try {
+                    const statusRes: any = await authService.checkQrStatus(nextQrId);
+                    const statusData = statusRes?.data ?? statusRes;
+                    if (statusData?.accessToken && statusData?.refreshToken) {
+                        if (pollRef.current) clearInterval(pollRef.current);
+                        await AuthStorage.saveTokens(statusData.accessToken, statusData.refreshToken);
+                        await refreshUserData();
+                        router.replace("/(main)");
+                    }
+                } catch {
+                    // keep polling quietly
+                }
+            }, 2000);
+        } catch (e) {
+            console.warn("Generate QR failed", e);
+        } finally {
+            setLoading(false);
+        }
+    }, [refreshUserData, router]);
+
+    useEffect(() => {
+        if (Platform.OS === "web") {
+            void startQrLogin();
+        }
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
+    }, [startQrLogin]);
+
+    // Trở về
+    const handleClose = () => {
+        router.back();
+    };
+    return (
+        <View className="flex-1 bg-white" style={{paddingTop: insets.top}}>
+            {/* Header */}
+            <View
+                className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100"
+                style={Shadows.sm}
+            >
+                <TouchableOpacity onPress={handleClose}>
+                    <Ionicons name="arrow-back" size={24} color="#333"/>
+                </TouchableOpacity>
+                <Text className="text-lg font-semibold text-gray-800">
+                    {Platform.OS === 'web' ? t('qr.confirmLoginTitle') : t('qr.grantPermission')}
+                </Text>
+                <TouchableOpacity onPress={Platform.OS === "web" ? startQrLogin : undefined}>
+                    <Ionicons
+                        name={Platform.OS === 'web' ? "qr-code-outline" : "scan-outline"}
+                        size={24}
+                        color="#333"
+                    />
+                </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            {loading ? (
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#0068FF"/>
+                    <Text className="mt-4 text-gray-500">{t('common.processing')}</Text>
+                </View>
+            ) : Platform.OS === "web" ? (
+                // Chờ quét mã QR từ thiết bị khác
+                <View className="flex-1 items-center justify-center p-6">
+                    <View className="">
+                        {/* Phần tiêu đề */}
+                        <View className="mb-6">
+                            <Text className="text-center text-xl font-bold text-gray-800 mb-2">
+                                {t('qr.confirmLoginTitle')}
+                            </Text>
+                            <Text className="text-center text-sm text-gray-500">
+                                {t('qr.confirmLoginMessage')}
+                            </Text>
+                        </View>
+                    </View>
+                    {/* Phần QR code */}
+                    <View className="bg-white p-4 rounded-2xl border-2 border-gray-100">
+                        <QRCodeDisplay
+                            value={qrValue}
+                            size={256}
+                        />
+                    </View>
+                    {/* Thông tin bổ sung */}
+                    <View className="mt-6">
+                        <Text className="text-center text-sm text-gray-500">
+                            {t('common.retry')}
+                        </Text>
+                        <Text className="text-center text-lg font-semibold text-blue-500">
+                            04:59
+                        </Text>
+                    </View>
+                    {/* Nút làm mới */}
+                    <TouchableOpacity
+                        className="mt-6 bg-blue-500 py-3 px-6 rounded-full"
+                        onPress={startQrLogin}
+                    >
+                        <Text className="text-white text-center font-semibold">
+                            {t('common.retry')}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                // Màn hình quét mã QR
+                <QRScanner/>
+            )}
+        </View>
+    );
+}

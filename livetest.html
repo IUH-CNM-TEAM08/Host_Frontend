@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Web Test</title>
+    <!-- CSS cơ bản -->
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: white; text-align: center; margin: 0; padding: 20px; }
+        video { width: 100%; max-width: 600px; background: #000; border-radius: 8px; margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+        button:hover { background: #1d4ed8; }
+        #status { margin-top: 10px; color: #a3a3a3; }
+        #remoteVideos { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+    </style>
+    <!-- Import thư viện LiveKit JS -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+</head>
+<body>
+
+    <h2>Test Livestream (Bản Web)</h2>
+    <p>Chức năng này dùng để test camera/mic trên Web trước khi gắn vào điện thoại.</p>
+    
+    <button id="joinBtn">Bắt đầu Phát Live (Bật Camera)</button>
+    <div id="status">Đang đợi kết nối...</div>
+
+    <!-- Nơi chứa video của mình -->
+    <video id="localVideo" autoplay muted playsinline></video>
+    
+    <!-- Nơi chứa video của người khác trong phòng -->
+    <div id="remoteVideos"></div>
+
+    <script>
+        const LIVEKIT_URL = 'wss://livestream-zala-8almwmwe.livekit.cloud';
+        const room = new LivekitClient.Room();
+
+        // Lắng nghe sự kiện có người khác bật camera trong phòng
+        room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+            if (track.kind === LivekitClient.Track.Kind.Video || track.kind === LivekitClient.Track.Kind.Audio) {
+                const element = track.attach();
+                element.style.width = "300px";
+                document.getElementById('remoteVideos').appendChild(element);
+            }
+        });
+
+        // Xử lý khi có người thoát hoặc tắt camera
+        room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+            track.detach().forEach(el => el.remove());
+        });
+
+        document.getElementById('joinBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('joinBtn');
+            const status = document.getElementById('status');
+
+            if (room.state === 'connected') {
+                await room.disconnect();
+                btn.innerText = "Bắt đầu Phát Live";
+                status.innerText = "Đã ngắt kết nối.";
+                document.getElementById('localVideo').srcObject = null;
+                return;
+            }
+
+            try {
+                btn.innerText = "Đang kết nối...";
+                status.innerText = "Đang xin quyền (Token) từ Backend...";
+
+                // 1. Gọi API Backend để lấy Token
+                const randomName = "WebUser_" + Math.floor(Math.random() * 1000);
+                const response = await fetch(`http://localhost:3000/api/live/token?roomName=ZalaLiveRoom&participantName=${randomName}`);
+                const data = await response.json();
+                
+                if (!data.token) throw new Error("Không lấy được token");
+
+                status.innerText = "Đã có Token. Đang kết nối LiveKit...";
+
+                // 2. Kết nối vào phòng LiveKit
+                await room.connect(LIVEKIT_URL, data.token);
+                status.innerText = "Kết nối thành công! Đang bật Camera...";
+
+                // 3. Bật Camera và Mic
+                await room.localParticipant.setCameraEnabled(true);
+                await room.localParticipant.setMicrophoneEnabled(true);
+
+                // Hiển thị camera của mình lên màn hình
+                const cameraTrack = Array.from(room.localParticipant.videoTrackPublications.values())[0].videoTrack;
+                if (cameraTrack) {
+                    const videoEl = document.getElementById('localVideo');
+                    cameraTrack.attach(videoEl);
+                }
+
+                btn.innerText = "Tắt Live";
+                status.innerText = "Đang phát sóng trực tiếp!";
+                
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Lỗi: " + err.message;
+                btn.innerText = "Bắt đầu Phát Live";
+            }
+        });
+    </script>
+</body>
+</html>

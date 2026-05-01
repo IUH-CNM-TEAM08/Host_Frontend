@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+  <title>Tìm Việc</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --blue:#1877f2;--blue-dark:#1558c0;--blue-light:#e8f0fd;
+      --orange:#f97316;--green:#16a34a;--gray:#64748b;
+      --border:#e5e7eb;--bg:#f8fafc;--white:#fff;
+      --text:#1e293b;--text-sub:#64748b;
+      --glass:rgba(255,255,255,0.7);
+    }
+    html,body{height:100%;overflow:hidden;background:#f0f2f5}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;box-shadow:0 0 40px rgba(0,0,0,0.1)}
+
+    /* ─ LOADING ─ */
+    #loading{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999}
+    .spin{width:36px;height:36px;border:3px solid #bfdbfe;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ─ HEADER (GLASS) ─ */
+    .app-header{background:var(--blue);padding:44px 14px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
+    .app-header.glass{background:var(--glass);backdrop-filter:blur(15px);border-bottom:1px solid rgba(255,255,255,0.3)}
+    .app-header.glass .header-title{color:var(--text)}
+    .app-header.glass .h-icon-btn{background:rgba(0,0,0,0.05);color:var(--text)}
+    .header-title{color:#fff;font-size:17px;font-weight:700;transition: color 0.3s}
+    .header-right{display:flex;align-items:center;gap:10px}
+    .h-icon-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:13px;transition:all 0.2s}
+    .h-icon-btn:active{transform:scale(0.9)}
+
+    /* ─ SCREENS ─ */
+    .screen{display:none;flex:1;flex-direction:column;overflow:hidden;animation:fadeIn 0.3s ease-out}
+    .screen.active{display:flex}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)}}
+    .scroll-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .scroll-body::-webkit-scrollbar{display:none}
+
+    /* ─ BUTTON & CARD SCALE ─ */
+    .cat-item, .job-card, .btn-action, .menu-item, .filter-btn, .form-submit, .try-btn, .profile-cta{transition:transform 0.1s ease}
+    .cat-item:active, .job-card:active, .btn-action:active, .menu-item:active, .filter-btn:active, .form-submit:active, .try-btn:active, .profile-cta:active{transform:scale(0.96)}
+
+    /* ─ SEARCH ─ */
+    .search-wrap{background:#fff;padding:10px 12px;border-bottom:1px solid var(--border)}
+    .search-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;padding:0 10px;height:40px;gap:8px;transition:all 0.2s}
+    .search-box:focus-within{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(24,119,242,0.1)}
+    .search-box input{flex:1;border:none;outline:none;font-size:14px;color:var(--text);background:transparent}
+    .search-box input::placeholder{color:#adb5bd}
+    .search-box i{color:#9ca3af;font-size:14px}
+
+    /* ─ FILTERS ─ */
+    .filter-row{display:flex;gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--border)}
+    .filter-btn{flex:1;display:flex;align-items:center;justify-content:space-between;padding:7px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:var(--text);gap:4px}
+    .filter-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+    .filter-btn-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .filter-btn i:last-child{font-size:10px;flex-shrink:0}
+
+    /* ─ BANNER ─ */
+    .banner{margin:10px 12px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#1877f2,#0ea5e9);padding:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 16px rgba(24,119,242,0.15)}
+    .banner-left h3{color:#fff;font-size:15px;font-weight:700;margin-bottom:4px}
+    .banner-left p{color:rgba(255,255,255,.85);font-size:12px;line-height:1.5}
+    .banner-btn{background:#fff;color:var(--blue);font-size:11px;font-weight:700;padding:7px 14px;border-radius:20px;white-space:nowrap;cursor:pointer;border:none;margin-top:10px;font-family:inherit;box-shadow:0 4px 8px rgba(0,0,0,0.1)}
+    .banner-icon{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin-left:12px;flex-shrink:0}
+    .banner-icon i{font-size:28px;color:#fff}
+
+    /* ─ SECTION TITLE ─ */
+    .sec-title{font-size:14px;font-weight:700;color:var(--text);padding:12px 12px 8px;display:flex;align-items:center;gap:8px}
+    .sec-title i{color:var(--blue);font-size:15px}
+
+    /* ─ CATEGORY GRID ─ */
+    .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 12px 14px}
+    .cat-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+    .cat-icon{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--blue-light);transition:all 0.2s}
+    .cat-item:hover .cat-icon{transform:translateY(-2px);box-shadow:0 4px 10px rgba(24,119,242,0.1)}
+    .cat-icon i{font-size:20px;color:var(--blue)}
+    .cat-name{font-size:11px;color:var(--text-sub);text-align:center;line-height:1.3}
+
+    /* ─ JOB CARD ─ */
+    .jobs-list{padding:0 12px;display:flex;flex-direction:column;gap:10px;padding-bottom:20px}
+    .job-card{background:#fff;border-radius:12px;border:1px solid var(--border);padding:14px;cursor:pointer;transition:all 0.2s}
+    .job-card:hover{border-color:var(--blue);box-shadow:0 4px 15px rgba(0,0,0,0.05)}
+    .job-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+    .job-logo{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .job-logo i{font-size:20px;color:var(--blue)}
+    .job-meta{flex:1}
+    .job-company{font-size:11px;color:var(--gray);display:flex;align-items:center;gap:4px;margin-bottom:3px}
+    .job-location{font-size:11px;color:var(--gray);display:flex;align-items:center;gap:4px}
+    .job-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:5px;line-height:1.4}
+    .job-salary{font-size:13px;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:5px}
+    .job-badge{font-size:10px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;padding:3px 8px;border-radius:10px;font-weight:600;align-self:flex-start;display:flex;align-items:center;gap:3px;white-space:nowrap}
+
+    /* ─ PROGRESS ─ */
+    .profile-card{margin:10px 12px;background:var(--blue-light);border-radius:12px;padding:14px;border:1px solid #bfdbfe}
+    .progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .progress-pct{background:rgba(255,173,0,.15);border:1px solid #fbbf24;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#d97706;display:flex;align-items:center;gap:4px}
+    .progress-bar-wrap{background:#dbeafe;border-radius:4px;height:6px;margin-bottom:10px;overflow:hidden}
+    .progress-bar{height:100%;border-radius:4px;background:var(--blue);transition:width 0.5s cubic-bezier(0.4, 0, 0.2, 1)}
+    .good-badge{background:#fbbf24;color:#1c1917;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;margin-bottom:8px}
+    .profile-desc{font-size:13px;color:var(--text);line-height:1.5;margin-bottom:12px}
+    .profile-cta{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--blue);border-radius:8px;padding:7px 16px;font-size:13px;color:var(--blue);font-weight:600;cursor:pointer;background:#fff}
+
+    /* ─ COMPANY ROW ─ */
+    .company-row{display:flex;gap:12px;padding:4px 12px 14px;overflow-x:auto;scrollbar-width:none}
+    .company-row::-webkit-scrollbar{display:none}
+    .company-logo{width:56px;height:56px;border-radius:12px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+    .company-logo:active{transform:scale(0.9)}
+    .company-logo i{font-size:22px;color:var(--gray)}
+
+    /* ─ COMMUNITY ─ */
+    .sub-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border)}
+    .sub-tab{flex:1;padding:12px;text-align:center;font-size:14px;font-weight:500;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+    .sub-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+    .news-list{padding:0 12px;display:flex;flex-direction:column}
+    .news-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
+    .news-item:active{background:rgba(0,0,0,0.02)}
+    .news-thumb{width:80px;height:56px;border-radius:8px;background:var(--blue-light);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .news-thumb i{font-size:22px;color:var(--blue)}
+    .news-info{flex:1}
+    .news-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.4}
+    .news-date{font-size:11px;color:var(--gray);margin-top:4px;display:flex;align-items:center;gap:4px}
+    
+    .empty-state{padding:40px 20px;text-align:center;color:var(--gray);display:flex;flex-direction:column;align-items:center;gap:12px}
+    .empty-state i{font-size:40px;color:#d1d5db}
+    .empty-state h4{font-size:14px;font-weight:600;color:var(--text)}
+    .empty-state p{font-size:13px;line-height:1.5}
+
+    /* ─ ACCOUNT ─ */
+    .account-top{background:#fff;padding:16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .menu-section{background:#fff;margin-bottom:8px}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #f8fafc;cursor:pointer}
+    .menu-icon{width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .menu-text{flex:1;font-size:14px;color:var(--text)}
+    .chevron-icon{color:#d1d5db;font-size:12px}
+    .toggle-row{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#fff;border-bottom:1px solid var(--border)}
+    .toggle-info{flex:1}
+    .toggle-label{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px}
+    .toggle-desc{font-size:12px;color:var(--gray);line-height:1.4}
+    .toggle-switch{width:44px;height:24px;border-radius:12px;background:#d1d5db;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none}
+    .toggle-switch.on{background:var(--blue)}
+    .toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+    .toggle-switch.on::after{left:23px}
+
+    /* ─ FORMS ─ */
+    .post-form{padding:12px}
+    .form-group{margin-bottom:16px}
+    .form-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .form-label i{color:var(--blue);width:16px;text-align:center}
+    .form-input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;box-sizing:border-box}
+    .form-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,119,242,0.1)}
+    .form-submit{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px}
+
+    /* ─ BOTTOM TABS (GLASS) ─ */
+    .bottom-tabs{display:flex;background:var(--glass);backdrop-filter:blur(15px);border-top:1px solid rgba(0,0,0,0.05);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom, 20px);z-index:100}
+    .tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;cursor:pointer;gap:3px;position:relative;transition:all 0.2s;text-decoration:none}
+    .tab-item:active{transform:scale(0.9)}
+    .tab-item i{font-size:20px;color:#9ca3af;transition:all 0.2s}
+    .tab-item.active i{color:var(--blue);transform:translateY(-2px)}
+    .tab-label{font-size:10px;font-weight:500;color:#9ca3af}
+    .tab-item.active .tab-label{color:var(--blue)}
+    .tab-dot{position:absolute;top:8px;right:30%;width:7px;height:7px;border-radius:50%;background:#ef4444;border:1.5px solid #fff}
+
+    /* ─ MODALS (PRO) ─ */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(2px)}
+    .modal-overlay.show{opacity:1;pointer-events:all}
+    .modal-sheet{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:85vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:0 -10px 25px rgba(0,0,0,0.1)}
+    .modal-overlay.show .modal-sheet{transform:translateY(0)}
+    .modal-handle{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:10px auto 0}
+    .modal-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+    .modal-title{font-size:16px;font-weight:700;color:var(--text)}
+    .modal-close{width:30px;height:30px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray);font-size:14px}
+    .modal-item{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid #f8fafc;cursor:pointer;font-size:14px;color:var(--text);transition:background .1s}
+    .modal-item:active{background:var(--bg)}
+    .modal-item.selected{color:var(--blue);font-weight:600;background:var(--blue-light)}
+    .modal-footer{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+    .modal-confirm-btn{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+    .modal-confirm-btn:active{background:var(--blue-dark)}
+
+    /* ─ ĐĂNG TUYỂN FORM ─ */
+    .post-form{padding:16px;display:flex;flex-direction:column;gap:12px}
+    .form-group{background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden}
+    .form-label{font-size:11px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 14px 4px;display:flex;align-items:center;gap:6px}
+    .form-label i{font-size:11px;color:var(--blue)}
+    .form-input{width:100%;border:none;outline:none;font-size:14px;color:var(--text);padding:4px 14px 10px;background:transparent;font-family:inherit;resize:none}
+    .form-input::placeholder{color:#adb5bd}
+    .form-submit{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+    .form-submit:active{background:var(--blue-dark)}
+    .form-submit i{font-size:14px}
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spin"></div>
+  <span style="color:var(--blue);font-size:14px;font-weight:500">Đang tải Tìm Việc...</span>
+</div>
+
+<!-- HEADER -->
+<div class="app-header" id="app-header">
+  <span class="header-title" id="header-title">Tìm Việc</span>
+  <div class="header-right">
+    <button class="h-icon-btn"><i class="fas fa-ellipsis"></i></button>
+    <button class="h-icon-btn"><i class="fas fa-xmark"></i></button>
+  </div>
+</div>
+
+<!-- ══ SCREEN: TÌM VIỆC ══ -->
+<div id="screen-home" class="screen active">
+  <div class="search-wrap">
+    <div class="search-box">
+      <i class="fas fa-magnifying-glass"></i>
+      <input id="search-input" placeholder="Nhập từ khóa tìm việc" onfocus="showSearchHistory()" oninput="filterJobs()" />
+    </div>
+  </div>
+  <div id="search-history" style="display:none;background:#fff;border-bottom:1px solid var(--border)">
+    <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--gray)">TÌM KIẾM GẦN ĐÂY</div>
+    <div class="history-wrap" id="history-items"></div>
+  </div>
+  <div class="filter-row">
+    <button class="filter-btn" id="filter-province" onclick="openModal('province')">
+      <span class="filter-btn-text" id="filter-province-text">Tỉnh thành</span>
+      <i class="fas fa-chevron-down"></i>
+    </button>
+    <button class="filter-btn" id="filter-district" onclick="openModal('district')">
+      <span class="filter-btn-text" id="filter-district-text">Quận/Huyện</span>
+      <i class="fas fa-chevron-down"></i>
+    </button>
+    <button class="filter-btn" id="filter-industry" onclick="openModal('industry')">
+      <span class="filter-btn-text" id="filter-industry-text">Ngành nghề</span>
+      <i class="fas fa-chevron-down"></i>
+    </button>
+  </div>
+  <div class="scroll-body">
+    <!-- Banner -->
+    <div class="banner">
+      <div class="banner-left">
+        <h3>Đăng tin trên Zala</h3>
+        <p>Tiếp cận hàng triệu ứng viên<br>tiềm năng ngay hôm nay</p>
+        <button class="banner-btn" onclick="switchTab('post')"><i class="fas fa-bullhorn" style="margin-right:5px"></i>ĐĂNG TIN NGAY</button>
+      </div>
+      <div class="banner-icon">
+        <i class="fas fa-user-tie"></i>
+      </div>
+    </div>
+
+    <!-- Join group -->
+    <div style="margin:0 12px 10px;background:var(--blue-light);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;border:1px solid #bfdbfe">
+      <i class="fas fa-users-viewfinder" style="color:var(--blue);font-size:22px;flex-shrink:0"></i>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">Tham gia nhóm Zala Tìm Việc</div>
+        <div style="font-size:12px;color:var(--text-sub);line-height:1.4">Nhận thông báo việc làm mới nhất từ <b>#Top_Nhà_Tuyển_Dụng</b></div>
+      </div>
+      <button onclick="showToast('Tính năng sắp ra mắt!','info')" style="background:var(--blue);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit">Tham gia</button>
+    </div>
+
+    <!-- Categories -->
+    <div class="sec-title"><i class="fas fa-layer-group"></i>Việc làm theo ngành nghề</div>
+    <div class="cat-grid">
+      <div class="cat-item" onclick="selectCategory('Nhân viên kinh doanh')">
+        <div class="cat-icon"><i class="fas fa-handshake"></i></div>
+        <div class="cat-name">Kinh doanh</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('Nhân viên bán hàng')">
+        <div class="cat-icon"><i class="fas fa-store"></i></div>
+        <div class="cat-name">Bán hàng</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('Giao vận')">
+        <div class="cat-icon"><i class="fas fa-truck-fast"></i></div>
+        <div class="cat-name">Giao vận</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('Công nhân')">
+        <div class="cat-icon"><i class="fas fa-helmet-safety"></i></div>
+        <div class="cat-name">Công nhân</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('Kỹ thuật')">
+        <div class="cat-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+        <div class="cat-name">Kỹ thuật</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('IT/Phần mềm')">
+        <div class="cat-icon"><i class="fas fa-code"></i></div>
+        <div class="cat-name">IT / Phần mềm</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('Kế toán')">
+        <div class="cat-icon"><i class="fas fa-calculator"></i></div>
+        <div class="cat-name">Kế toán</div>
+      </div>
+      <div class="cat-item" onclick="selectCategory('')">
+        <div class="cat-icon" style="background:#f1f5f9;border:1px dashed #d1d5db"><i class="fas fa-ellipsis" style="color:var(--gray)"></i></div>
+        <div class="cat-name">Xem tất cả</div>
+      </div>
+    </div>
+
+    <!-- Company row -->
+    <div class="sec-title"><i class="fas fa-building-circle-check"></i>Việc làm theo công ty</div>
+    <div class="company-row">
+      <div class="company-logo"><img src="https://logodix.com/logo/1707090.png" style="width:70%;filter:grayscale(1)" onerror="this.src='';this.className='fas fa-building'"></div>
+      <div class="company-logo" style="background:#e0f2fe"><i class="fas fa-truck-fast" style="color:#0284c7"></i></div>
+      <div class="company-logo" style="background:#fef3c7"><i class="fas fa-industry" style="color:#d97706"></i></div>
+      <div class="company-logo" style="background:#fce7f3"><i class="fas fa-store" style="color:#db2777"></i></div>
+      <div class="company-logo" style="background:#f3e8ff"><i class="fas fa-graduation-cap" style="color:#9333ea"></i></div>
+    </div>
+
+    <!-- Partners -->
+    <div class="sec-title"><i class="fas fa-circle-check"></i>Đối tác uy tín</div>
+    <div class="company-row" style="padding-bottom:20px">
+      <div class="company-logo"><i class="fas fa-shield-halved"></i></div>
+      <div class="company-logo" style="background:#fef3c7"><i class="fas fa-helmet-safety" style="color:#d97706"></i></div>
+      <div class="company-logo" style="background:#fee2e2"><i class="fas fa-house-chimney" style="color:#dc2626"></i></div>
+      <div class="company-logo"><i class="fas fa-truck-ramp-box"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: KẾT QUẢ ══ -->
+<div id="screen-results" class="screen">
+  <div class="search-wrap">
+    <div class="search-box">
+      <i class="fas fa-magnifying-glass"></i>
+      <input id="search-input-2" placeholder="Nhập từ khóa tìm việc" oninput="syncSearch()" />
+      <span style="font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;white-space:nowrap" onclick="goHome()">Xong</span>
+    </div>
+  </div>
+  <div class="filter-row">
+    <button class="filter-btn active" id="res-province" onclick="openModal('province')">
+      <span class="filter-btn-text" id="res-province-text">Tỉnh thành</span>
+      <i class="fas fa-chevron-down"></i>
+    </button>
+    <button class="filter-btn" id="res-district" onclick="openModal('district')">
+      <span class="filter-btn-text" id="res-district-text">Quận/Huyện</span>
+      <i class="fas fa-chevron-down"></i>
+    </button>
+    <button class="filter-btn" id="res-industry" onclick="openModal('industry')">
+      <span class="filter-btn-text" id="res-industry-text">Ngành nghề</span>
+      <i class="fas fa-chevron-down"></i>
+    </button>
+  </div>
+  <div class="scroll-body">
+    <div class="profile-card">
+      <div class="progress-header">
+        <div class="progress-pct"><i class="fas fa-star"></i> 0%</div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:0%"></div></div>
+      <div class="good-badge"><i class="fas fa-star"></i> Ứng viên tốt</div>
+      <div class="profile-desc">Cập nhật hồ sơ để nhận huy hiệu <b>Ứng viên tốt</b> giúp tăng tỷ lệ được liên lạc lên <b>gấp 2 lần!</b></div>
+      <div class="profile-cta" onclick="switchTab('account')"><i class="fas fa-pen-to-square"></i> Bổ sung hồ sơ</div>
+    </div>
+    <div class="sec-title"><i class="fas fa-briefcase"></i>Việc làm liên quan</div>
+    <div class="jobs-list" id="jobs-list"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: ĐĂNG TUYỂN ══ -->
+<div id="screen-post" class="screen">
+  <div class="scroll-body">
+    <div style="padding:16px 12px 8px;font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px"><i class="fas fa-pen-clip" style="color:var(--blue)"></i>Đăng tin tuyển dụng</div>
+    <div class="post-form">
+      <div class="form-group">
+        <div class="form-label"><i class="fas fa-briefcase"></i>Tên vị trí</div>
+        <input id="post-title" class="form-input" placeholder="VD: Nhân viên kinh doanh"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label"><i class="fas fa-building"></i>Tên công ty</div>
+        <input id="post-company" class="form-input" placeholder="Tên công ty của bạn"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label"><i class="fas fa-money-bill-wave"></i>Mức lương</div>
+        <input id="post-salary" class="form-input" placeholder="VD: 8 - 12 triệu / tháng"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label"><i class="fas fa-location-dot"></i>Địa điểm làm việc</div>
+        <input id="post-location" class="form-input" placeholder="Tỉnh/TP, Quận/Huyện"/>
+      </div>
+      <div class="form-group">
+        <div class="form-label"><i class="fas fa-align-left"></i>Mô tả công việc</div>
+        <textarea id="post-desc" class="form-input" rows="5" placeholder="Mô tả chi tiết yêu cầu và phúc lợi..."></textarea>
+      </div>
+      <button id="post-submit-btn" class="form-submit" onclick="submitPost()"><i class="fas fa-paper-plane"></i>Đăng tin ngay</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: CỘNG ĐỒNG ══ -->
+<div id="screen-community" class="screen">
+  <div class="sub-tabs">
+    <div class="sub-tab active" id="subtab-news" onclick="switchSubtab('news')">Tin tức</div>
+    <div class="sub-tab" id="subtab-groups" onclick="switchSubtab('groups')">Nhóm chat</div>
+  </div>
+  <div class="search-wrap">
+    <div class="search-box">
+      <i class="fas fa-magnifying-glass"></i>
+      <input placeholder="Tìm kiếm tin tức..."/>
+    </div>
+  </div>
+  <div class="scroll-body">
+    <div id="subtab-news-content">
+      <div class="news-list">
+        <div class="news-item">
+          <div class="news-thumb"><i class="fas fa-circle-question"></i></div>
+          <div class="news-info"><div class="news-title">Ứng tuyển xong rồi... là xong?</div><div class="news-date"><i class="fas fa-calendar"></i>25/08/2025</div></div>
+        </div>
+        <div class="news-item">
+          <div class="news-thumb"><i class="fas fa-money-bill-trend-up"></i></div>
+          <div class="news-info"><div class="news-title">KHÁM PHÁ NGAY MỨC LƯƠNG 2025 các việc làm đang tìm kiếm</div><div class="news-date"><i class="fas fa-calendar"></i>22/08/2025</div></div>
+        </div>
+        <div class="news-item">
+          <div class="news-thumb"><i class="fas fa-coins"></i></div>
+          <div class="news-info"><div class="news-title">Thu nhập tháng của người lao động tăng gần 1 triệu so với năm ngoái</div><div class="news-date"><i class="fas fa-calendar"></i>05/06/2024</div></div>
+        </div>
+        <div class="news-item">
+          <div class="news-thumb"><i class="fas fa-industry"></i></div>
+          <div class="news-info"><div class="news-title">TP.HCM cần tuyển hơn 14.000 lao động sau Tết</div><div class="news-date"><i class="fas fa-calendar"></i>05/06/2024</div></div>
+        </div>
+        <div class="news-item">
+          <div class="news-thumb"><i class="fas fa-chart-bar"></i></div>
+          <div class="news-info"><div class="news-title">Xu hướng tuyển dụng ngành logistics tăng mạnh quý 3/2025</div><div class="news-date"><i class="fas fa-calendar"></i>01/06/2024</div></div>
+        </div>
+        <div class="news-item">
+          <div class="news-thumb"><i class="fas fa-user-tie"></i></div>
+          <div class="news-info"><div class="news-title">Bí quyết vượt qua phỏng vấn xin việc lần đầu</div><div class="news-date"><i class="fas fa-calendar"></i>28/05/2024</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="subtab-groups-content" style="display:none">
+      <div class="empty-state">
+        <i class="fas fa-comments"></i>
+        <h4>Chưa có nhóm nào</h4>
+        <p>Tham gia nhóm tuyển dụng để nhận thông báo việc HOT</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: TÀI KHOẢN ══ -->
+<div id="screen-account" class="screen">
+  <div class="scroll-body">
+    <div class="account-top" id="account-profile">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:48px;height:48px;border-radius:24px;background:#1877f2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">
+          <i class="fas fa-user"></i>
+        </div>
+        <div>
+          <div id="acc-name" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px">Vị khách ẩn danh</div>
+          <div id="acc-phone" style="font-size:13px;color:var(--gray)">Chưa cung cấp số điện thoại</div>
+        </div>
+      </div>
+      <div class="account-badge">Ứng viên</div>
+    </div>
+    <div class="profile-card" style="margin:8px 12px">
+      <div class="progress-header">
+        <div class="progress-pct"><i class="fas fa-star"></i> 0%</div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:0%"></div></div>
+      <div class="good-badge"><i class="fas fa-star"></i> Ứng viên tốt</div>
+      <div class="profile-desc">Cập nhật hồ sơ để nhận huy hiệu <b>Ứng viên tốt</b> giúp tăng tỷ lệ được liên lạc lên <b>gấp 2 lần!</b></div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-item" onclick="openModal('profile-edit')">
+        <div class="menu-icon"><i class="fas fa-user-pen"></i></div>
+        <div class="menu-text">Cập nhật hồ sơ</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+      <div class="menu-item" onclick="switchTab('saved')">
+        <div class="menu-icon"><i class="fas fa-bookmark"></i></div>
+        <div class="menu-text">Danh sách việc làm đã lưu</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+      <div class="menu-item" onclick="switchTab('applied')">
+        <div class="menu-icon"><i class="fas fa-briefcase-clock"></i></div>
+        <div class="menu-text">Công việc đã ứng tuyển</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-item">
+        <div class="menu-icon"><i class="fas fa-thumbtack"></i></div>
+        <div class="menu-text">Ghim ra màn hình chính</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+      <div class="menu-item">
+        <div class="menu-icon"><i class="fas fa-share-nodes"></i></div>
+        <div class="menu-text">Chia sẻ ứng dụng với bạn bè</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+      <div class="menu-item">
+        <div class="menu-icon"><i class="fas fa-shield-halved"></i></div>
+        <div class="menu-text">Quản lý quyền và dữ liệu cá nhân</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+      <div class="menu-item">
+        <div class="menu-icon"><i class="fas fa-users"></i></div>
+        <div class="menu-text">Danh sách nhóm Tìm Việc</div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+      <div class="menu-item">
+        <div class="menu-icon"><i class="fas fa-bell"></i></div>
+        <div class="menu-text">Nhận thông báo việc làm <span class="menu-new">NEW</span></div>
+        <i class="fas fa-chevron-right chevron-icon"></i>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">Trạng thái tìm việc</div>
+        <div class="toggle-desc">Bật trạng thái tìm việc để nhà tuyển dụng có thể tìm kiếm và liên hệ với bạn</div>
+      </div>
+      <button class="toggle-switch on" id="job-toggle" onclick="toggleJobStatus()"></button>
+    </div>
+
+    <div class="sec-title"><i class="fas fa-compass"></i>Khám phá tiện ích</div>
+    <div class="discover-section">
+      <div class="discover-item">
+        <div class="discover-logo"><i class="fas fa-prescription-bottle-medical"></i></div>
+        <div class="discover-info">
+          <div class="discover-name">Nhà Thuốc Pharmacity</div>
+          <div class="discover-desc">Mua sắm sản phẩm từ Nhà Thuốc Pharmacity ngay trên Zala</div>
+        </div>
+        <button class="try-btn">Dùng thử</button>
+      </div>
+      <div class="discover-item">
+        <div class="discover-logo" style="background:#dcfce7"><i class="fas fa-stethoscope" style="color:#16a34a"></i></div>
+        <div class="discover-info">
+          <div class="discover-name">Zala Health</div>
+          <div class="discover-desc">Đặt lịch khám bệnh nhanh chóng ngay trên Zala</div>
+        </div>
+        <button class="try-btn">Dùng thử</button>
+      </div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: ĐÃ ỨNG TUYỂN ══ -->
+<div id="screen-applied" class="screen">
+  <div style="background:#fff;padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+    <i class="fas fa-arrow-left" onclick="switchTab('account')" style="cursor:pointer;color:var(--text)"></i>
+    <span style="font-size:15px;font-weight:700">Việc làm đã ứng tuyển</span>
+  </div>
+  <div class="scroll-body">
+    <div class="jobs-list" id="applied-jobs-list" style="padding-top:12px"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: ĐÃ LƯU ══ -->
+<div id="screen-saved" class="screen">
+  <div style="background:#fff;padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:12px">
+      <i class="fas fa-arrow-left" onclick="switchTab('account')" style="cursor:pointer;color:var(--text)"></i>
+      <span style="font-size:15px;font-weight:700">Công việc đã lưu</span>
+    </div>
+    <i class="fas fa-trash-can" onclick="clearBookmarks()" style="color:var(--gray);font-size:14px;cursor:pointer"></i>
+  </div>
+  <div class="scroll-body">
+    <div class="jobs-list" id="saved-jobs-list" style="padding-top:12px"></div>
+  </div>
+</div>
+
+<!-- BOTTOM TABS -->
+<div class="bottom-tabs">
+  <div class="tab-item active" id="tab-home" onclick="switchTab('home')">
+    <i class="fas fa-magnifying-glass"></i>
+    <span class="tab-label">Tìm việc</span>
+  </div>
+  <div class="tab-item" id="tab-post" onclick="switchTab('post')">
+    <i class="fas fa-pen-to-square"></i>
+    <span class="tab-label">Đăng tuyển</span>
+  </div>
+  <div class="tab-item" id="tab-community" onclick="switchTab('community')">
+    <i class="fas fa-users"></i>
+    <span class="tab-label">Cộng đồng</span>
+  </div>
+  <div class="tab-item" id="tab-account" onclick="switchTab('account')">
+    <i class="fas fa-user-circle"></i>
+    <span class="tab-label">Tài khoản</span>
+    <div class="tab-dot"></div>
+  </div>
+</div>
+
+<!-- MODAL: PROVINCE -->
+<div class="modal-overlay" id="modal-province" onclick="closeModalOutside(event,'province')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Tìm việc ở tỉnh thành</span>
+      <button class="modal-close" onclick="closeModal('province')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-search">
+      <div class="modal-search-box">
+        <i class="fas fa-magnifying-glass"></i>
+        <input placeholder="Tìm kiếm" oninput="filterModal('province',this.value)" />
+      </div>
+    </div>
+    <div class="modal-list" id="modal-province-list"></div>
+  </div>
+</div>
+
+<!-- MODAL: DISTRICT -->
+<div class="modal-overlay" id="modal-district" onclick="closeModalOutside(event,'district')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Quận Huyện</span>
+      <button class="modal-close" onclick="closeModal('district')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-search">
+      <div class="modal-search-box">
+        <i class="fas fa-magnifying-glass"></i>
+        <input placeholder="Tìm kiếm" oninput="filterModal('district',this.value)" />
+      </div>
+    </div>
+    <div class="modal-list" id="modal-district-list"></div>
+    <div class="modal-footer">
+      <button class="modal-confirm-btn" onclick="confirmFilter('district')"><i class="fas fa-check"></i>Chọn</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: INDUSTRY -->
+<div class="modal-overlay" id="modal-industry" onclick="closeModalOutside(event,'industry')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Ngành nghề</span>
+      <button class="modal-close" onclick="closeModal('industry')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-search">
+      <div class="modal-search-box">
+        <i class="fas fa-magnifying-glass"></i>
+        <input placeholder="Tìm kiếm" oninput="filterModal('industry',this.value)" />
+      </div>
+    </div>
+    <div class="modal-list" id="modal-industry-list"></div>
+    <div class="modal-footer">
+      <button class="modal-confirm-btn" onclick="confirmFilter('industry')"><i class="fas fa-check"></i>Chọn</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PROFILE EDIT -->
+<div class="modal-overlay" id="modal-profile-edit">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Cập nhật hồ sơ</span>
+      <button class="modal-close" onclick="closeModal('profile-edit')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="scroll-body" style="padding:16px">
+      <div class="post-form" style="padding:0">
+        <div class="form-group">
+          <div class="form-label">Họ và tên</div>
+          <input id="prof-name" class="form-input" placeholder="Nhập họ tên đầy đủ"/>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Vị trí mong muốn</div>
+          <input id="prof-title" class="form-input" placeholder="VD: Nhân viên kho, Tài xế..."/>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Kỹ năng / Kinh nghiệm</div>
+          <textarea id="prof-exp" class="form-input" rows="3" placeholder="Mô tả ngắn gọn kinh nghiệm của bạn"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-confirm-btn" onclick="saveProfile()"><i class="fas fa-floppy-disk"></i> Lưu hồ sơ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ CONFIG ══
+const API_BASE = window.API_BASE_OVERRIDE || 'http://localhost:3000/api/findwork';
+const USER_ID = 'user_' + Math.random().toString(36).slice(2, 9); // demo userId
+
+// ══ STATE ══
+let state = {
+  province: '', district: '', industry: '',
+  tempProvince: '', tempDistrict: '', tempIndustry: '',
+  activeTab: 'home', jobToggle: true,
+  // cache từ API
+  provinces: [], districts: [], industries: [],
+  appliedJobs: new Set(),
+  bookmarks: new Set(),
+  searchHistory: JSON.parse(localStorage.getItem('findwork_history') || '[]'),
+};
+
+// ══ API HELPERS ══
+async function apiFetch(path) {
+  try {
+    const res = await fetch(API_BASE + path);
+    const json = await res.json();
+    return json.success ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+async function apiPost(path, body) {
+  try {
+    const res = await fetch(API_BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (e) {
+    return { success: false, message: 'Lỗi kết nối server' };
+  }
+}
+
+// ══ INIT ══
+async function initApp(userData) {
+  document.getElementById('loading').style.display = 'none';
+
+  // Load provinces & industries từ API song song
+  const [pRes, iRes] = await Promise.all([
+    apiFetch('/provinces'),
+    apiFetch('/industries'),
+  ]);
+  state.provinces = pRes?.data || getFallbackProvinces();
+  state.industries = iRes?.data || getFallbackIndustries();
+
+  // Hiển thị thông tin user nếu đã cấp quyền
+  if (window.ZALA_USER) {
+    document.getElementById('acc-name').textContent = window.ZALA_USER.name || 'Thành viên Zala';
+    document.getElementById('acc-phone').textContent = window.ZALA_USER.phone || 'SĐT: Đã bảo mật';
+    document.querySelector('#account-profile i').className = 'fas fa-check-circle';
+    
+    // Tăng progress hồ sơ vì đã có tên và SĐT
+    const pctEls = document.querySelectorAll('.progress-pct');
+    pctEls.forEach(el => el.innerHTML = '<i class="fas fa-star"></i> 45%');
+    const bEls = document.querySelectorAll('.progress-bar');
+    bEls.forEach(el => el.style.width = '45%');
+  }
+
+  // Load bookmark status
+  const bRes = await apiFetch('/bookmarks/' + USER_ID);
+  if (bRes?.data) state.bookmarks = new Set(bRes.data.map(j => j.id));
+
+  // Render search history
+  renderSearchHistory();
+
+  // Load jobs mặc định
+  await fetchAndRenderJobs({});
+
+  // Load news
+  await fetchAndRenderNews();
+}
+
+// ══ FETCH JOBS FROM API ══
+async function fetchAndRenderJobs(params = {}) {
+  const list = document.getElementById('jobs-list');
+  if (list) list.innerHTML = renderSkeleton(3);
+
+  const query = new URLSearchParams();
+  if (params.keyword) query.set('keyword', params.keyword);
+  if (params.province) query.set('province', params.province);
+  if (params.district && params.district !== 'Tất cả khu vực') query.set('district', params.district);
+  if (params.industry && params.industry !== 'Tất cả ngành nghề') query.set('industry', params.industry);
+  query.set('limit', '20');
+
+  const res = await apiFetch('/jobs?' + query.toString());
+  if (res && res.data) {
+    renderJobs(res.data);
+    // Update result count label
+    const countEl = document.getElementById('result-count');
+    if (countEl) countEl.textContent = `${res.pagination.total} việc làm phù hợp`;
+  } else {
+    if (list) list.innerHTML = `<div style="padding:24px;text-align:center;color:var(--gray)">
+      <i class="fas fa-wifi" style="font-size:32px;color:#d1d5db;margin-bottom:10px;display:block"></i>
+      <div style="font-weight:600;margin-bottom:4px">Không thể kết nối server</div>
+      <div style="font-size:12px">Hiển thị dữ liệu mẫu</div>
+    </div>`;
+  }
+}
+
+// ══ FETCH DISTRICTS FROM API ══
+async function fetchDistricts(province) {
+  if (!province) return ['Tất cả khu vực'];
+  const res = await apiFetch('/districts?province=' + encodeURIComponent(province));
+  return res?.data || ['Tất cả khu vực'];
+}
+
+// ══ FETCH NEWS FROM API ══
+async function fetchAndRenderNews() {
+  const res = await apiFetch('/news?limit=10');
+  if (!res?.data) return;
+  const newsList = document.querySelector('#subtab-news-content .news-list');
+  if (!newsList) return;
+  newsList.innerHTML = res.data.map(n => {
+    const d = new Date(n.publishedAt);
+    const dateStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+    return `
+      <div class="news-item">
+        <div class="news-thumb"><i class="fas ${n.icon}"></i></div>
+        <div class="news-info">
+          <div class="news-title">${n.title}</div>
+          <div class="news-date"><i class="fas fa-calendar"></i>${dateStr} &nbsp;·&nbsp; <i class="fas fa-eye"></i>${n.views.toLocaleString()} lượt xem</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══ APPLY JOB ══
+async function applyJobAPI(jobId, jobTitle) {
+  if (state.appliedJobs.has(jobId)) {
+    showToast('Bạn đã ứng tuyển vị trí này rồi!', 'warning');
+    return;
+  }
+  
+  const userName = window.ZALA_USER?.name || 'Vị khách ẩn danh';
+  const userPhone = window.ZALA_USER?.phone || '090.xxx.xxxx';
+  
+  const res = await apiPost(`/jobs/${jobId}/apply`, {
+    userId: USER_ID,
+    name: userName,
+    phone: userPhone,
+    coverLetter: 'Tôi quan tâm đến vị trí này.',
+  });
+  if (res.success) {
+    state.appliedJobs.add(jobId);
+    showToast('Ứng tuyển thành công! ' + res.message, 'success');
+  } else {
+    showToast(res.message || 'Lỗi ứng tuyển', 'error');
+  }
+}
+
+// ══ TOAST NOTIFICATION ══
+function showToast(msg, type = 'success') {
+  const existing = document.getElementById('toast');
+  if (existing) existing.remove();
+  const colors = { success: '#16a34a', error: '#dc2626', warning: '#d97706' };
+  const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
+  const toast = document.createElement('div');
+  toast.id = 'toast';
+  toast.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:${colors[type]};color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;display:flex;align-items:center;gap:8px;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:slideUp .2s ease`;
+  toast.innerHTML = `<i class="fas ${icons[type]}"></i><span>${msg}</span>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+// ══ SKELETON LOADING ══
+function renderSkeleton(count) {
+  return Array(count).fill(0).map(() => `
+    <div class="job-card" style="pointer-events:none">
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <div style="width:44px;height:44px;border-radius:10px;background:#e5e7eb;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="height:11px;background:#e5e7eb;border-radius:4px;margin-bottom:6px;width:60%"></div>
+          <div style="height:10px;background:#f1f5f9;border-radius:4px;width:80%"></div>
+        </div>
+      </div>
+      <div style="height:14px;background:#e5e7eb;border-radius:4px;margin-bottom:6px"></div>
+      <div style="height:14px;background:#f1f5f9;border-radius:4px;width:50%"></div>
+    </div>
+  `).join('');
+}
+
+// ══ INDUSTRY ICON MAP ══
+const INDUSTRY_ICONS = {
+  'Bảo vệ': 'fa-shield-halved',
+  'Bất động sản': 'fa-house-chimney',
+  'Công nhân': 'fa-helmet-safety',
+  'Giao vận': 'fa-truck-fast',
+  'IT/Phần mềm': 'fa-laptop-code',
+  'Kế toán': 'fa-file-invoice-dollar',
+  'Kinh doanh': 'fa-chart-line',
+  'Lái xe': 'fa-car-side',
+  'Nhân viên bán hàng': 'fa-store',
+  'Nhân viên kinh doanh': 'fa-handshake',
+  'Nhà hàng - Khách sạn': 'fa-utensils',
+  'Kỹ thuật': 'fa-screwdriver-wrench',
+  'Y tế': 'fa-stethoscope',
+  'Marketing': 'fa-bullhorn',
+  'Giáo viên': 'fa-chalkboard-teacher',
+};
+
+function getIconForJob(job) {
+  return INDUSTRY_ICONS[job.industry] || 'fa-briefcase';
+}
+
+// ══ TAB SWITCHING ══
+function switchTab(tab) {
+  state.activeTab = tab;
+  const header = document.getElementById('app-header');
+  ['home', 'post', 'community', 'account', 'applied', 'saved', 'results'].forEach(t => {
+    document.getElementById('screen-' + t)?.classList.toggle('active', t === tab);
+    const tabBtn = document.getElementById('tab-' + t);
+    if (tabBtn) tabBtn.classList.toggle('active', t === tab);
+  });
+
+  // Glassmorphism toggle
+  header.classList.toggle('glass', tab === 'home' || tab === 'account' || tab === 'saved');
+
+  // Hide global header for sub-screens that have their own
+  const isSubScreen = tab === 'applied' || tab === 'saved';
+  header.style.display = isSubScreen ? 'none' : 'flex';
+
+  const titles = { home: 'Tìm Việc', post: 'Đăng Tuyển', community: 'Cộng đồng', account: 'Tài khoản', applied: 'Tìm Việc', saved: 'Đã Lưu', results: 'Kết quả' };
+  document.getElementById('header-title').textContent = titles[tab] || 'Tìm Việc';
+  
+  if (tab === 'applied') fetchAndRenderAppliedJobs();
+  if (tab === 'saved') fetchAndRenderSavedJobs();
+  if (tab === 'account') updateProfileProgress();
+
+  // Hide search history if switching
+  document.getElementById('search-history').style.display = 'none';
+}
+
+function switchSubtab(sub) {
+  ['news', 'groups'].forEach(s => {
+    document.getElementById('subtab-' + s).classList.toggle('active', s === sub);
+    document.getElementById('subtab-' + s + '-content').style.display = s === sub ? 'block' : 'none';
+  });
+}
+
+// ══ SEARCH & FILTER ══
+let searchTimer;
+function filterJobs() {
+  clearTimeout(searchTimer);
+  const q = document.getElementById('search-input').value.trim();
+  if (q.length > 0) {
+    searchTimer = setTimeout(() => showResults(q), 400);
+  }
+}
+
+function syncSearch() {
+  document.getElementById('search-input').value = document.getElementById('search-input-2').value;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    fetchAndRenderJobs({
+      keyword: state.keyword,
+      province: state.province,
+      district: state.district,
+      industry: state.industry,
+    });
+  }, 400);
+}
+
+function goHome() {
+  switchScreenDirect('home');
+  ['home', 'post', 'community', 'account'].forEach(t => {
+    document.getElementById('screen-' + t)?.classList.toggle('active', t === 'home');
+    document.getElementById('tab-' + t)?.classList.toggle('active', t === 'home');
+  });
+  document.getElementById('header-title').textContent = 'Tìm Việc';
+}
+
+function selectCategory(cat) {
+  state.industry = cat;
+  showResults('', cat);
+}
+
+async function showResults(keyword = '', industry = '') {
+  state.keyword = keyword || document.getElementById('search-input').value;
+  if (industry) state.industry = industry;
+
+  switchScreenDirect('results');
+  ['home', 'post', 'community', 'account'].forEach(t => {
+    document.getElementById('screen-' + t)?.classList.remove('active');
+    document.getElementById('tab-' + t)?.classList.remove('active');
+  });
+
+  document.getElementById('search-input-2').value = state.keyword;
+  document.getElementById('res-province-text').textContent = state.province || 'Tỉnh thành';
+  document.getElementById('res-district-text').textContent = state.district || 'Quận/Huyện';
+  document.getElementById('res-industry-text').textContent = state.industry || 'Ngành nghề';
+  document.getElementById('res-province').classList.toggle('active', !!state.province);
+  document.getElementById('res-district').classList.toggle('active', !!state.district);
+  document.getElementById('res-industry').classList.toggle('active', !!state.industry);
+
+  await fetchAndRenderJobs({
+    keyword: state.keyword,
+    province: state.province,
+    district: state.district,
+    industry: state.industry,
+  });
+
+  if (state.keyword) saveSearchHistory(state.keyword);
+}
+
+function switchScreenDirect(name) {
+  ['home', 'results', 'post', 'community', 'account'].forEach(s => {
+    document.getElementById('screen-' + s)?.classList.toggle('active', s === name);
+  });
+}
+
+// ══ RENDER JOB CARDS ══
+function renderJobs(jobs) {
+  const list = document.getElementById('jobs-list');
+  if (!list) return;
+  if (!jobs.length) {
+    list.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--gray)">
+      <i class="fas fa-briefcase" style="font-size:36px;color:#d1d5db;margin-bottom:12px;display:block"></i>
+      <div style="font-weight:600;margin-bottom:6px">Không có việc làm phù hợp</div>
+      <div style="font-size:12px">Thử thay đổi từ khoá hoặc bộ lọc</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = jobs.map(j => {
+    const icon = getIconForJob(j);
+    const locStr = `${j.location.province}, ${j.location.district}`;
+    const badge = j.badge === 'platinum' ? '<div class="job-badge"><i class="fas fa-lock"></i>Platinum</div>'
+                : j.badge === 'gold' ? '<div class="job-badge" style="background:#fef3c7;border-color:#fbbf24;color:#92400e"><i class="fas fa-star"></i>Gold</div>' : '';
+    return `
+      <div class="job-card" onclick="showJobDetail('${j.id}','${encodeURIComponent(j.title)}')">
+        <div class="job-card-top">
+          <div class="job-logo"><i class="fas ${icon}"></i></div>
+          <div class="job-meta">
+            <div class="job-company"><i class="fas fa-building"></i>${j.company}</div>
+            <div class="job-location"><i class="fas fa-location-dot"></i>${locStr}</div>
+          </div>
+          ${badge}
+        </div>
+        <div class="job-title">${j.title}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+          <div class="job-salary"><i class="fas fa-money-bill-wave"></i>${j.salary.display}</div>
+          <button onclick="event.stopPropagation();applyJobAPI('${j.id}','${encodeURIComponent(j.title)}')"
+            style="font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-light);border:1px solid var(--blue);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px">
+            <i class="fas fa-paper-plane" style="font-size:10px"></i>Ứng tuyển
+          </button>
+        </div>
+        <div style="font-size:11px;color:#adb5bd;margin-top:6px;display:flex;align-items:center;gap:4px">
+          <i class="fas fa-users" style="font-size:10px"></i>${j.applications} ứng viên
+          &nbsp;·&nbsp;
+          <i class="fas fa-hourglass-half" style="font-size:10px"></i>HSD: ${j.deadline.slice(0,10)}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function showJobDetail(id, encodedTitle) {
+  const title = decodeURIComponent(encodedTitle);
+  const res = await apiFetch('/jobs/' + id);
+  if (!res?.data) {
+    showToast('Không tải được thông tin việc làm', 'error');
+    return;
+  }
+  const j = res.data;
+  const reqList = j.requirements.map(r => `<li style="margin-bottom:4px">${r}</li>`).join('');
+  const benList = j.benefits.map(b => `<li style="margin-bottom:4px">${b}</li>`).join('');
+  const icon = getIconForJob(j);
+
+  // Open a detail modal
+  let modal = document.getElementById('modal-detail');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-detail';
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div class="modal-sheet" style="max-height:90vh">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Chi tiết việc làm</span>
+        <button class="modal-close" onclick="document.getElementById('modal-detail').classList.remove('show')"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-list" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div class="job-logo" style="width:52px;height:52px;flex-shrink:0"><i class="fas ${icon}" style="font-size:24px"></i></div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.4">${j.title}</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:3px;display:flex;align-items:center;gap:5px"><i class="fas fa-building"></i>${j.company}</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px;display:flex;align-items:center;gap:5px"><i class="fas fa-location-dot"></i>${j.location.province} · ${j.location.district}</div>
+          </div>
+          <div onclick="event.stopPropagation();toggleBookmarkDetail('${j.id}')" style="cursor:pointer;padding:8px" id="detail-bookmark-btn">
+            <i class="${state.bookmarks.has(j.id) ? 'fas' : 'far'} fa-heart" style="font-size:20px;color:${state.bookmarks.has(j.id)?'#ef4444':'#cbd5e1'}"></i>
+          </div>
+        </div>
+        <div style="background:var(--blue-light);border-radius:10px;padding:12px;display:flex;justify-content:space-between">
+          <div style="text-align:center"><div style="font-size:11px;color:var(--gray)">Lương</div><div style="font-size:13px;font-weight:700;color:var(--orange)">${j.salary.display}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:var(--gray)">Kinh nghiệm</div><div style="font-size:13px;font-weight:600;color:var(--text)">${j.experience}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:var(--gray)">Loại</div><div style="font-size:13px;font-weight:600;color:var(--text)">${j.jobType==='fulltime'?'Toàn thời gian':j.jobType==='parttime'?'Bán thời gian':'Tự do'}</div></div>
+        </div>
+        <div><div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--text)"><i class="fas fa-align-left" style="color:var(--blue);margin-right:5px"></i>Mô tả</div><div style="font-size:13px;color:var(--text-sub);line-height:1.6">${j.description}</div></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button onclick="shareJob('${encodeURIComponent(j.title)}')" style="flex:1;background:var(--blue-light);color:var(--blue);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+            <i class="fas fa-share-nodes"></i> Chia sẻ
+          </button>
+          <button onclick="applyJobAPI('${j.id}','${encodeURIComponent(j.title)}');document.getElementById('modal-detail').classList.remove('show')"
+            style="flex:2;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+            <i class="fas fa-paper-plane"></i> Ứng tuyển ngay
+          </button>
+        </div>
+      </div>
+    </div>`;
+  setTimeout(() => modal.classList.add('show'), 10);
+}
+
+// ══ SEARCH HISTORY ══
+function showSearchHistory() {
+  if (state.searchHistory.length > 0) {
+    document.getElementById('search-history').style.display = 'block';
+  }
+}
+
+function renderSearchHistory() {
+  const wrap = document.getElementById('history-items');
+  if (!wrap) return;
+  wrap.innerHTML = state.searchHistory.map(h => `
+    <div class="history-tag" onclick="useHistory('${encodeURIComponent(h)}')">
+      <i class="fas fa-clock-rotate-left"></i> ${h}
+    </div>
+  `).join('');
+}
+
+function useHistory(q) {
+  const val = decodeURIComponent(q);
+  document.getElementById('search-input').value = val;
+  document.getElementById('search-history').style.display = 'none';
+  showResults(val);
+}
+
+function saveSearchHistory(q) {
+  if (!q || state.searchHistory.includes(q)) return;
+  state.searchHistory.unshift(q);
+  state.searchHistory = state.searchHistory.slice(0, 5);
+  localStorage.setItem('findwork_history', JSON.stringify(state.searchHistory));
+  renderSearchHistory();
+}
+
+// ══ BOOKMARKS ══
+async function toggleBookmarkAPI(jobId) {
+  const res = await apiPost('/bookmarks/toggle', { userId: USER_ID, jobId });
+  if (res.success) {
+    if (res.isBookmarked) state.bookmarks.add(jobId);
+    else state.bookmarks.delete(jobId);
+    showToast(res.message, 'success');
+  }
+}
+
+async function toggleBookmarkDetail(jobId) {
+  await toggleBookmarkAPI(jobId);
+  const btn = document.getElementById('detail-bookmark-btn');
+  if (btn) {
+    const isSaved = state.bookmarks.has(jobId);
+    btn.innerHTML = `<i class="${isSaved ? 'fas' : 'far'} fa-heart" style="font-size:20px;color:${isSaved ? '#ef4444' : '#cbd5e1'}"></i>`;
+  }
+}
+
+function clearBookmarks() {
+  if (confirm('Xóa toàn bộ danh sách đã lưu?')) {
+    state.bookmarks.clear();
+    showToast('Đã xóa toàn bộ lưu trữ', 'warning');
+    fetchAndRenderSavedJobs();
+  }
+}
+
+function shareJob(title) {
+  showToast('Đã sao chép liên kết chia sẻ cho bạn bè!', 'success');
+  // Simulate native share
+  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'SHARE', title: decodeURIComponent(title) }));
+}
+
+async function fetchAndRenderSavedJobs() {
+  const list = document.getElementById('saved-jobs-list');
+  list.innerHTML = renderSkeleton(3);
+  const res = await apiFetch('/bookmarks/' + USER_ID);
+  if (res?.data) {
+    if (!res.data.length) {
+      list.innerHTML = `<div class="empty-state"><i class="fas fa-bookmark"></i><h4>Danh sách trống</h4><p>Lưu lại những công việc bạn quan tâm</p></div>`;
+    } else {
+      list.innerHTML = res.data.map(j => renderJobItemDetailHTML(j)).join('');
+    }
+  }
+}
+
+// ══ PROFILE ══
+function updateProfileProgress() {
+  let progress = 30; // Base
+  if (window.ZALA_USER) progress += 15;
+  if (localStorage.getItem('findwork_prof_complete')) progress = 100;
+
+  const pctEls = document.querySelectorAll('.progress-pct');
+  pctEls.forEach(el => el.innerHTML = `<i class="fas fa-star"></i> ${progress}%`);
+  const bEls = document.querySelectorAll('.progress-bar');
+  bEls.forEach(el => el.style.width = progress + '%');
+  
+  if (progress === 100) {
+    const badges = document.querySelectorAll('.good-badge');
+    badges.forEach(b => b.innerHTML = '<i class="fas fa-check-circle"></i> Đã tối ưu hồ sơ');
+  }
+}
+
+function saveProfile() {
+  const name = document.getElementById('prof-name').value;
+  if (!name) return showToast('Vui lòng nhập tên', 'warning');
+  localStorage.setItem('findwork_prof_complete', 'true');
+  showToast('Cập nhật hồ sơ thành công!', 'success');
+  closeModal('profile-edit');
+  updateProfileProgress();
+}
+
+function renderJobItemDetailHTML(j) {
+  const icon = getIconForJob(j);
+  const isBookmarked = state.bookmarks.has(j.id);
+  return `
+    <div class="job-card" onclick="showJobDetail('${j.id}','${encodeURIComponent(j.title)}')">
+      <div class="job-card-top">
+        <div class="job-logo"><i class="fas ${icon}"></i></div>
+        <div class="job-meta">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">${j.title}</div>
+          <div class="job-company">${j.company}</div>
+        </div>
+        <i class="fas fa-heart" style="color:#ef4444;font-size:16px"></i>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+        <div class="job-salary" style="font-size:13px">${j.salary.display}</div>
+        <div style="font-size:11px;color:var(--gray)">${j.location.province}</div>
+      </div>
+    </div>`;
+}
+
+function updateFilterBtns() {
+  document.getElementById('filter-province-text').textContent = state.province || 'Tỉnh thành';
+  document.getElementById('filter-district-text').textContent = state.district || 'Quận/Huyện';
+  document.getElementById('filter-industry-text').textContent = state.industry || 'Ngành nghề';
+  document.getElementById('filter-province')?.classList.toggle('active', !!state.province);
+  document.getElementById('filter-district')?.classList.toggle('active', !!state.district);
+  document.getElementById('filter-industry')?.classList.toggle('active', !!state.industry);
+}
+
+// ══ ACCOUNT ══
+function toggleJobStatus() {
+  state.jobToggle = !state.jobToggle;
+  document.getElementById('job-toggle').classList.toggle('on', state.jobToggle);
+  showToast(state.jobToggle ? 'Đã bật trạng thái tìm việc' : 'Đã tắt trạng thái tìm việc', 'success');
+}
+
+// ══ ĐĂNG TUYỂN ══
+async function submitPost() {
+  const title = document.getElementById('post-title').value.trim();
+  const company = document.getElementById('post-company').value.trim();
+  const salary = document.getElementById('post-salary').value.trim();
+  const location = document.getElementById('post-location').value.trim();
+  const description = document.getElementById('post-desc').value.trim();
+
+  if (!title || !company) {
+    showToast('Vui lòng điền tên vị trí và tên công ty', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('post-submit-btn');
+  const oldHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin" style="width:16px;height:16px;border-width:2px"></div> Đang đăng...';
+
+  const res = await apiPost('/jobs', { title, company, salary, location, description });
+  
+  btn.disabled = false;
+  btn.innerHTML = oldHTML;
+
+  if (res.success) {
+    showToast('Đăng tin tuyển dụng thành công!', 'success');
+    // Clear inputs
+    ['post-title', 'post-company', 'post-salary', 'post-location', 'post-desc'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    // Refresh home list and switch
+    await fetchAndRenderJobs({});
+    switchTab('home');
+  } else {
+    showToast(res.message || 'Lỗi đăng tin', 'error');
+  }
+}
+
+async function fetchAndRenderAppliedJobs() {
+  const list = document.getElementById('applied-jobs-list');
+  if (!list) return;
+  list.innerHTML = renderSkeleton(3);
+
+  const res = await apiFetch('/my-applications/' + USER_ID);
+  if (res && res.data) {
+    if (!res.data.length) {
+      list.innerHTML = `<div style="padding:40px 20px;text-align:center;color:var(--gray)">
+        <i class="fas fa-briefcase-clock" style="font-size:40px;color:#d1d5db;margin-bottom:12px;display:block"></i>
+        <h4>Bạn chưa ứng tuyển việc nào</h4>
+        <p style="font-size:13px;margin-top:6px">Hãy tìm kiếm và nộp đơn ngay nhé!</p>
+      </div>`;
+    } else {
+      list.innerHTML = res.data.map(j => renderJobItemHTML(j)).join('');
+    }
+  } else {
+    list.innerHTML = `<div style="padding:24px;text-align:center;color:var(--gray)">Lỗi tải dữ liệu</div>`;
+  }
+}
+
+function renderJobItemHTML(j) {
+  const icon = getIconForJob(j);
+  const locStr = `${j.location.province}, ${j.location.district}`;
+  const badge = j.badge === 'platinum' ? '<div class="job-badge"><i class="fas fa-lock"></i>Platinum</div>'
+              : j.badge === 'gold' ? '<div class="job-badge" style="background:#fef3c7;border-color:#fbbf24;color:#92400e"><i class="fas fa-star"></i>Gold</div>' : '';
+  return `
+    <div class="job-card" onclick="showJobDetail('${j.id}','${encodeURIComponent(j.title)}')">
+      <div class="job-card-top">
+        <div class="job-logo"><i class="fas ${icon}"></i></div>
+        <div class="job-meta">
+          <div class="job-company"><i class="fas fa-building"></i>${j.company}</div>
+          <div class="job-location"><i class="fas fa-location-dot"></i>${locStr}</div>
+        </div>
+        ${badge}
+      </div>
+      <div class="job-title">${j.title}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+        <div class="job-salary"><i class="fas fa-money-bill-wave"></i>${j.salary.display}</div>
+        <span style="font-size:11px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:4px">
+          <i class="fas fa-circle-check"></i>Đã nộp đơn
+        </span>
+      </div>
+      <div style="font-size:11px;color:#adb5bd;margin-top:6px;display:flex;align-items:center;gap:4px">
+        <i class="fas fa-clock" style="font-size:10px"></i>Nộp lúc: ${new Date(j.createdAt).toLocaleDateString()}
+      </div>
+    </div>`;
+}
+
+// ══ FALLBACK DATA (offline) ══
+function getFallbackProvinces() {
+  return ['Thành phố Hồ Chí Minh','Thành phố Hà Nội','Tỉnh Bình Dương','Tỉnh Đồng Nai','Thành phố Đà Nẵng','Thành phố Cần Thơ'];
+}
+function getFallbackIndustries() {
+  return ['Tất cả ngành nghề','Bảo vệ','Bất động sản','Công nhân','Giao vận','IT/Phần mềm','Kế toán','Kinh doanh','Lái xe','Marketing','Nhân viên bán hàng','Nhà hàng - Khách sạn','Y tế'];
+}
+
+// ══ CSS TOAST ANIMATION ══
+const style = document.createElement('style');
+style.textContent = '@keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}';
+document.head.appendChild(style);
+
+// ══ BRIDGE ══
+window.onload = function () {
+  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'READY' }));
+  window.addEventListener('message', function (e) {
+    try { initApp(typeof e.data === 'string' ? JSON.parse(e.data) : e.data); } catch (err) { }
+  });
+  // Fallback: tự khởi động sau 1.5s
+  setTimeout(() => {
+    if (document.getElementById('loading').style.display !== 'none') {
+      initApp({ name: 'Demo', phone: '0901234567', avatarURL: '' });
+    }
+  }, 1500);
+};
+</script>
+</body>
+</html>

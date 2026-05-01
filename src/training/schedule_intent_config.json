@@ -1,0 +1,266 @@
+{
+  "version": "2.3",
+  "feature": "schedule_suggestion",
+  "description": "Config phát hiện intent lên lịch, hẹn gặp, đặt lịch họp, tổ chức event, collab, livestream, meetup trên nền tảng web social Việt Nam. Hỗ trợ phát hiện mạnh mẽ với ngôn ngữ tự nhiên, slang, viết tắt Gen Z phổ biến trong group chat, DM, comment. Gợi ý tạo nhắc nhở tự động thông minh, tối ưu cho văn hóa chat xã hội Việt Nam.",
+  "platform": "web_social_vietnam",
+  "last_updated": "2026-04-16",
+  "author": "expanded_for_social",
+
+  "detection": {
+    "min_confidence": 0.55,
+    "implicit_min_confidence": 0.60,
+    "implicit_dim_relax": 0.09,
+    "time_priority_floor": 0.25,
+    "blend_zero_shot": 0.73,
+    "ambiguity_penalty_scale": 0.19,
+    "weights": {
+      "action": 0.32,
+      "planning": 0.35,
+      "schedule": 0.33
+    },
+    "dimension_min": {
+      "action": 0.50,
+      "planning": 0.50,
+      "schedule": 0.51
+    },
+    "labels": {
+      "action": [
+        "Câu này có hành động/sự kiện cụ thể để thực hiện (This message includes a concrete action/event to do)",
+        "Câu này không có hành động/sự kiện cần thực hiện (This message has no actionable event)"
+      ],
+      "planning": [
+        "Người nói đang đề xuất/lên kế hoạch tham gia hoặc tổ chức sự kiện (The speaker is proposing or planning participation/organization)",
+        "Người nói không đề xuất hay lên kế hoạch gì (The speaker is not proposing/planning anything)"
+      ],
+      "schedule": [
+        "Lên lịch cho một hoạt động/sự kiện thực tế hoặc online ở thời điểm tương lai (Scheduling a real-world or online activity/event at a future time)",
+        "Chỉ nhắc đến thời gian nhưng không có ý định lên lịch (Time mention without scheduling intent)",
+        "Chỉ mô tả/cảm xúc, không có sự kiện được lên kế hoạch (Emotion/description only, no planned event)"
+      ]
+    },
+    "modes": {
+      "strict": {
+        "min_confidence": 0.67,
+        "implicit_min_confidence": 0.75,
+        "implicit_dim_relax": 0.05,
+        "time_priority_floor": 0.35,
+        "blend_zero_shot": 0.77,
+        "ambiguity_penalty_scale": 0.25,
+        "weights": { "action": 0.39, "planning": 0.35, "schedule": 0.26 },
+        "dimension_min": { "action": 0.58, "planning": 0.56, "schedule": 0.56 }
+      },
+      "balanced": {
+        "min_confidence": 0.55,
+        "implicit_min_confidence": 0.60,
+        "implicit_dim_relax": 0.09,
+        "time_priority_floor": 0.25,
+        "blend_zero_shot": 0.73,
+        "ambiguity_penalty_scale": 0.19,
+        "weights": { "action": 0.32, "planning": 0.35, "schedule": 0.33 },
+        "dimension_min": { "action": 0.50, "planning": 0.50, "schedule": 0.51 }
+      },
+      "social_relaxed": {
+        "min_confidence": 0.46,
+        "implicit_min_confidence": 0.40,
+        "implicit_dim_relax": 0.13,
+        "time_priority_floor": 0.20,
+        "blend_zero_shot": 0.68,
+        "ambiguity_penalty_scale": 0.16,
+        "weights": { "action": 0.27, "planning": 0.33, "schedule": 0.40 },
+        "dimension_min": { "action": 0.45, "planning": 0.47, "schedule": 0.48 }
+      }
+    }
+  },
+
+  "trigger_keywords": {
+    "time_of_day": [
+      "sáng", "trưa", "chiều", "tối", "đêm", "khuya", "sáng sớm", "buổi sáng", "buổi trưa", "buổi chiều", "buổi tối",
+      "nửa đêm", "rạng sáng", "xế chiều", "chập tối", "giờ hành chính", "sau giờ làm", "sau giờ tan tầm", "sau giờ tan ca",
+      "giờ nghỉ trưa", "giờ ăn trưa", "giờ cafe", "giờ nhậu", "giờ chill", "giờ vàng", "prime time", "giờ cao điểm"
+    ],
+    "relative_time": [
+      "mai", "ngày mai", "mốt", "ngày mốt", "tuần sau", "tuần tới", "tuần này", "tháng sau", "tháng tới", "tháng này",
+      "cuối tuần", "cuối tuần này", "cuối tuần tới", "đầu tuần", "giữa tuần", "cuối tháng", "đầu tháng", "nửa tháng",
+      "thứ hai", "thứ ba", "thứ tư", "thứ năm", "thứ sáu", "thứ bảy", "chủ nhật", "t2", "t3", "t4", "t5", "t6", "t7", "cn",
+      "hôm nay", "hôm nay luôn", "ngay bây giờ", "lát nữa", "tí nữa", "sắp tới", "sau này", "dịp tới", "dịp lễ",
+      "tết", "giáng sinh", "noel", "valentine", "8/3", "20/10", "1/6", "2/9", "30/4", "1/5"
+    ],
+    "clock_patterns": [
+      "\\d{1,2}h", "\\d{1,2}h\\d{2}", "\\d{1,2}:\\d{2}", "\\d{1,2} giờ", "\\d{1,2} giờ \\d{2} phút",
+      "\\d{1,2}h sáng", "\\d{1,2}h chiều", "\\d{1,2}h tối", "\\d{1,2}h trưa", "\\d{1,2}h đêm",
+      "\\d{1,2} giờ sáng", "\\d{1,2} giờ chiều", "\\d{1,2} giờ tối", "\\d{1,2}g", "\\d{1,2}g\\d{2}",
+      "khoảng \\d{1,2}h", "tầm \\d{1,2}h", "chừng \\d{1,2}h"
+    ],
+    "date_patterns": [
+      "\\d{1,2}/\\d{1,2}", "\\d{1,2}/\\d{1,2}/\\d{2,4}", "\\d{1,2}-\\d{1,2}-\\d{2,4}",
+      "ngày \\d{1,2}", "ngày \\d{1,2} tháng \\d{1,2}", "\\d{1,2} tháng \\d{1,2}", "tháng \\d{1,2}",
+      "ngày \\d{1,2}/\\d{1,2}", "vào ngày \\d{1,2}", "ngày \\d{1,2} t", "ngày \\d{1,2}/\\d{1,2}/\\d{4}"
+    ],
+    "action_verbs": [
+      "họp", "meeting", "meet", "gặp", "gặp nhau", "gặp mặt", "gặp offline", "gặp online", "offline meetup", "online meetup",
+      "đi", "đi chơi", "đi ăn", "đi cafe", "đi cà phê", "đi nhậu", "đi xem phim", "đi bar", "đi club", "đi karaoke", "đi hát",
+      "ăn", "nhậu", "cơm", "cà phê", "cafe", "trà sữa", "ăn vặt", "ăn khuya", "buffet", "ăn lẩu", "ăn nướng",
+      "học", "ôn thi", "làm bài", "nộp bài", "deadline", "collab", "hợp tác", "làm chung", "up chung",
+      "hẹn", "hẹn gặp", "hẹn nhau", "hẹn chỗ", "hẹn date", "hẹn hò", "date", "hẹn hò nha",
+      "chơi", "đá banh", "tập gym", "gym", "chạy bộ", "bóng rổ", "bóng đá", "game", "chơi game", "rank", "đấu rank",
+      "khám", "khám bệnh", "lấy thuốc", "tiêm", "check sức khỏe", "tái khám",
+      "bay", "chuyến bay", "ra sân bay", "lên xe", "đi du lịch", "travel", "check-in", "checkin", "book vé", "book phòng",
+      "sinh nhật", "birthday", "tiệc", "party", "tiệc sinh nhật", "mừng sinh nhật", "all night", "tiệc tùng",
+      "nộp", "báo cáo", "trình bày", "thuyết trình", "pitch", "demo", "show", "perform",
+      "gọi", "gọi điện", "call", "video call", "zoom", "google meet", "teams", "discord call",
+      "livestream", "stream", "live", "up live", "lên sóng", "live stream", "go live",
+      "post chung", "up story chung", "collab content", "làm video chung", "quay clip chung", "edit chung",
+      "nhắc", "nhớ", "đừng quên", "lưu ý", "confirm", "chốt", "book", "set", "fix lịch",
+      "team building", "workshop", "seminar", "event", "offline event", "online event"
+    ],
+    "schedule_phrases": [
+      "lên lịch", "đặt lịch", "xếp lịch", "sắp xếp lịch", "lên kế hoạch", "set lịch", "fix lịch", "book lịch",
+      "nhắc mình", "nhắc tôi", "nhắc t", "nhắc tao", "nhắc anh", "nhắc chị", "nhắc em", "nhắc mọi người", "nhắc cả nhóm",
+      "đừng quên", "nhớ nha", "nhớ nhé", "nhớ nghen", "nhớ luôn", "nhớ confirm", "nhớ chốt",
+      "hẹn lúc", "hẹn vào", "hẹn ngày", "hẹn giờ", "hẹn mấy giờ", "hẹn bao giờ",
+      "kèo", "chốt kèo", "kèo lúc", "kèo vào", "kèo nào", "kèo gì", "kèo đi", "chốt kèo nha",
+      "mình ra", "t ra", "mình lên", "t lên", "mình tới", "t tới", "qua chỗ", "ghé chỗ", "đến chỗ", "đến luôn",
+      "ok lúc", "ok vào", "được không lúc", "được vào lúc", "bao giờ", "khi nào", "mấy giờ",
+      "tầm", "khoảng", "tầm khoảng", "tầm mấy giờ", "khoảng mấy giờ", "chừng mấy giờ",
+      "confirm", "chốt", "chốt luôn nha", "book luôn", "book lịch luôn", "set luôn",
+      "rảnh không", "rảnh lúc", "free không", "free lúc", "có rảnh không", "có free không", "rảnh hem",
+      "có thể", "liệu có thể", "được không", "thế nào", "như nào", "sao", "ok hem",
+      "tổ chức", "làm event", "lên event", "set up event", "offline meetup", "online meetup", "team building",
+      "group call", "group meeting", "team meeting", "cả nhóm", "toàn thể", "mọi người", "cả nhà", "team",
+      "ai đi", "ai tham gia", "cùng không", "đi không", "tham gia không", "join không",
+      "mấy giờ gặp", "gặp lúc mấy giờ", "gặp nhau lúc nào", "hẹn gặp lúc nào"
+    ],
+    "slang_abbreviations": [
+      "kèo", "chốt kèo", "khoẻ hem", "rảnh hem", "free hem", "đc k", "đc hem", "ok k", "ok hem",
+      "mai k", "t2 k", "cn k", "hn k", "tới k", "đi k", "chơi k", "nhậu k", "cafe k",
+      "hẹn k", "gặp k", "meet k", "live k", "stream k", "collab k", "up k",
+      "bh", "hnay", "hqua", "mai nha", "mốt nha", "t2 nha", "cn nha", "cuối tuần nha",
+      "j dz tr", "u là tr", "ê nha", "ê", "alo", "alo nha", "call nha", "zoom nha"
+    ]
+  },
+
+  "time_expression_patterns": {
+    "absolute": {
+      "description": "Thời gian tuyệt đối — có ngày/giờ cụ thể",
+      "examples": [
+        "7h sáng mai", "9h tối thứ 6", "2 giờ chiều ngày 20/4/2026", "8h tối chủ nhật tuần sau",
+        "10 giờ sáng thứ hai ngày 25", "21h30 ngày 30/4", "19:45 thứ 5"
+      ]
+    },
+    "relative": {
+      "description": "Thời gian tương đối",
+      "examples": [
+        "mai tầm 9h", "cuối tuần đi cafe không", "thứ 5 tuần sau họp nhóm", "mốt ăn cơm nha",
+        "tối nay gặp online", "sau giờ làm đi nhậu", "cuối tháng team building đi"
+      ]
+    },
+    "implicit": {
+      "description": "Thời gian ngầm",
+      "examples": [
+        "cuối tuần đi chơi không mọi người", "mai rảnh không", "tuần sau gặp nhé",
+        "tháng sau sinh nhật mình tổ chức tiệc nha", "cuối tuần này ai rảnh"
+      ]
+    }
+  },
+
+  "suggestion": {
+    "show_after_ms": 700,
+    "dismiss_after_ms": 9000,
+    "max_per_conversation": 5,
+    "cooldown_between_suggestions_ms": 20000,
+    "templates": {
+      "vi": {
+        "default": "📅 Tạo nhắc nhở cho sự kiện này không bro?",
+        "meeting": "📅 Đặt lịch họp nhóm / team meeting lúc {time} nhé?",
+        "food": "🍜 Lên lịch đi ăn / cà phê / nhậu lúc {time}?",
+        "birthday": "🎂 Nhắc sinh nhật + tổ chức tiệc cho {name} vào {date}?",
+        "deadline": "⏰ Đặt nhắc deadline / nộp bài / collab lúc {time}?",
+        "call": "📞 Nhắc lịch gọi / video call / zoom lúc {time}?",
+        "livestream": "📹 Nhắc lịch livestream / lên sóng lúc {time}?",
+        "event": "🎉 Nhắc lịch event / offline meetup / team building lúc {time}?",
+        "collab": "🤝 Lên lịch collab content / quay video chung lúc {time}?",
+        "date": "❤️ Nhắc lịch hẹn hò / đi chơi lúc {time}?",
+        "generic": "⏰ Nhắc nhở: {extracted_event} lúc {time}?"
+      }
+    },
+    "quick_actions": [
+      { "id": "create_reminder", "label_vi": "Tạo nhắc nhở", "label_en": "Create Reminder", "icon": "alarm", "action": "OPEN_REMINDER_MODAL" },
+      { "id": "dismiss", "label_vi": "Bỏ qua", "label_en": "Dismiss", "icon": "close", "action": "DISMISS" },
+      { "id": "suggest_time", "label_vi": "Gợi ý thời gian khác", "label_en": "Suggest other time", "icon": "calendar", "action": "OPEN_TIME_SUGGESTER" },
+      { "id": "poll_time", "label_vi": "Tạo poll chọn giờ", "label_en": "Create time poll", "icon": "poll", "action": "CREATE_POLL" }
+    ],
+    "ui": {
+      "position": "above_input",
+      "style": "pill",
+      "animation": "slide_up",
+      "background_color": "#EFF6FF",
+      "border_color": "#BFDBFE",
+      "text_color": "#1E40AF",
+      "icon_color": "#3B82F6",
+      "hover_background": "#DBEAFE"
+    }
+  },
+
+  "reminder_prefill": {
+    "fields": {
+      "title": { "source": "extracted_event", "fallback": "Sự kiện từ tin nhắn chat" },
+      "time": { "source": "extracted_time", "fallback": "+2h" },
+      "note": { "source": "original_message", "max_length": 300 },
+      "location": { "source": "extracted_location", "fallback": "" },
+      "participants": { "source": "mentioned_users", "fallback": [] },
+      "linked_conversation_id": { "source": "current_conversation_id" },
+      "linked_message_id": { "source": "trigger_message_id" },
+      "event_type": { "source": "detected_category" }
+    }
+  },
+
+  "event_category_map": {
+    "meeting": ["họp", "meeting", "team meeting", "group call", "họp nhóm", "họp team", "thuyết trình", "báo cáo", "pitch", "demo"],
+    "food": ["ăn", "nhậu", "cơm", "cà phê", "cafe", "trà sữa", "đi ăn", "đi nhậu", "ăn vặt", "ăn khuya", "lẩu", "nướng", "buffet"],
+    "study": ["học", "ôn thi", "làm bài", "nộp bài", "deadline", "bài tập", "ôn tập"],
+    "sport": ["gym", "tập gym", "đá banh", "chạy bộ", "bóng rổ", "bóng đá", "yoga", "tập thể dục"],
+    "medical": ["khám", "khám bệnh", "lấy thuốc", "tiêm", "tái khám", "check sức khỏe"],
+    "travel": ["bay", "chuyến bay", "ra sân bay", "đi du lịch", "travel", "check-in", "book vé"],
+    "birthday": ["sinh nhật", "birthday", "tiệc sinh nhật", "mừng sinh nhật"],
+    "call": ["gọi điện", "call", "video call", "zoom", "google meet", "teams", "discord"],
+    "party": ["tiệc", "party", "event", "liên hoan", "all night", "tiệc tùng"],
+    "date": ["hẹn hò", "đi chơi", "xem phim", "date", "hẹn date"],
+    "livestream": ["livestream", "stream", "live", "up live", "lên sóng", "go live"],
+    "collab": ["collab", "hợp tác", "làm video chung", "post chung", "up story chung", "quay clip chung", "edit chung"],
+    "event": ["event", "offline meetup", "online meetup", "team building", "workshop", "seminar", "offline event"],
+    "gaming": ["chơi game", "rank", "đấu rank", "game night", "stream game"]
+  },
+
+  "exclusion_patterns": {
+    "patterns": [
+      "hôm qua.*", "hồi.*sáng|hồi.*chiều|hồi.*tối|hồi nãy|hôm trước",
+      "tuần trước|tháng trước|năm ngoái|năm trước",
+      "vừa.*xong|đã.*rồi|xong rồi|hoàn thành rồi|đã làm",
+      "nhớ hồi|lúc trước|ngày xưa|ngày đó|kể chuyện cũ",
+      "kể mày nghe|nghe kể|tao kể|nghe tao kể",
+      "có ai biết|hỏi thăm|ai biết không|thấy mày post",
+      "hôm nay buồn|hôm nay mệt|buồn vl|toang rồi",
+      "thấy story mày|thấy bài mày|like hộ"
+    ]
+  },
+
+  "confidence_boost": {
+    "question_mark_boost": 0.10,
+    "explicit_invitation_boost": 0.15,
+    "explicit_invitation_words": [
+      "không", "nha", "nhé", "nghen", "ha", "há", "hông", "hem", "k", "ko",
+      "có được không", "ok không", "được không", "thế nào", "như nào", "sao",
+      "kèo không", "tham gia không", "cùng không", "đi không", "ai đi", "ai tham gia",
+      "mọi người sao", "cả nhà", "team sao", "nhóm sao"
+    ]
+  },
+
+  "social_specific_rules": {
+    "group_chat_boost": 0.12,
+    "mention_boost": 0.09,
+    "multiple_people_mentioned_threshold": 2,
+    "event_size_keywords": ["cả nhóm", "toàn thể", "mọi người", "cả nhà", "team", "nhóm", "toàn bộ", "cả đám"],
+    "online_event_keywords": ["online", "zoom", "google meet", "livestream", "stream", "discord", "up live", "go live", "virtual"],
+    "slang_boost": 0.07
+  }
+}
