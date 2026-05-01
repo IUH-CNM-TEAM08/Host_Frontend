@@ -734,7 +734,7 @@ function InnerRoomUI({ roomCode, displayName, isHost, canSubscribe, identity, in
       addChatMessage({ ...msg, isSystem: true });
     };
 
-    const handleRoomDisconnect = (reason?: any) => {
+    const handleRoomDisconnect = async (reason?: any) => {
       const reasonText = String(
         reason?.reason ||
         reason?.message ||
@@ -754,6 +754,24 @@ function InnerRoomUI({ roomCode, displayName, isHost, canSubscribe, identity, in
       if (isTerminalDisconnect) {
         setIsEndingLive(false);
         onRoomEnded();
+        return;
+      }
+
+      // Viewer có thể nhận disconnect không rõ reason khi host end live.
+      // Fallback: hỏi backend xem phòng còn tồn tại không, nếu không thì kết thúc UI.
+      if (!isHost) {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/live/rooms`);
+          const data = await res.json();
+          const rooms = Array.isArray(data?.rooms) ? data.rooms : [];
+          const roomStillExists = rooms.some((r: any) => r?.roomName === roomCode || r?.code === roomCode);
+          if (!roomStillExists) {
+            setIsEndingLive(false);
+            onRoomEnded();
+          }
+        } catch (error) {
+          console.warn('[Live] Không thể kiểm tra trạng thái phòng sau disconnect:', error);
+        }
       }
     };
 
@@ -824,7 +842,7 @@ function InnerRoomUI({ roomCode, displayName, isHost, canSubscribe, identity, in
       room.off('dataReceived', handleReactionData);
       room.off('dataReceived', handleGiftData);
     };
-  }, [room, localParticipant?.identity, onRoomEnded, addChatMessage, spawnReaction, isHost, isTtsEnabled, speakText, isGiftEnabled, updateTopDonors]);
+  }, [room, roomCode, localParticipant?.identity, onRoomEnded, addChatMessage, spawnReaction, isHost, isTtsEnabled, speakText, isGiftEnabled, updateTopDonors]);
 
   useEffect(() => {
     if (chatScrollRef.current) {
@@ -1674,6 +1692,7 @@ export default function LiveScreenWeb() {
   const currentIdentity = user?.id || user?.accountId || tempId;
   const currentName = user?.name || user?.displayName || user?.fullName || tempName;
   const approvalRefreshInFlightRef = useRef(false);
+  const endingSessionRef = useRef(false);
 
   const fetchVipStatus = useCallback(async () => {
     if (!currentIdentity || currentIdentity.startsWith('uid_')) return;
@@ -1913,17 +1932,26 @@ export default function LiveScreenWeb() {
 
   // ── Joined view ──
 
-  const handleTimeExpired = useCallback(() => {
+  const endLiveSession = useCallback((message: string, showVipModal = false) => {
+    if (endingSessionRef.current) return;
+    endingSessionRef.current = true;
     sessionStorage.removeItem('liveStartTime');
-    setJoined(false);
     disconnect();
+    setJoined(false);
     setRoomStarting(false);
     setRoomReady(false);
+    setRoomReconnecting(false);
+    setRoomEndedMessage(message);
     setRoomEnded(true);
-    setRoomEndedMessage(`Phiên Live kết thúc do hết thời gian của gói ${vipTier}.`);
     fetchRooms();
-    setShowVipPurchase(true);
-  }, [vipTier, disconnect]);
+    if (showVipModal) {
+      setShowVipPurchase(true);
+    }
+  }, [disconnect, fetchRooms]);
+
+  const handleTimeExpired = useCallback(() => {
+    endLiveSession(`Phiên Live kết thúc do hết thời gian của gói ${vipTier}.`, true);
+  }, [vipTier, endLiveSession]);
 
   if (roomEnded) {
     return (
@@ -1988,13 +2016,7 @@ export default function LiveScreenWeb() {
               onUpgradeVip={() => setShowVipPurchase(true)}
               onTimeExpired={handleTimeExpired}
               onRoomEnded={() => {
-                setJoined(false);
-                disconnect();
-                setRoomStarting(false);
-                setRoomReady(false);
-                setRoomEnded(true);
-                setRoomEndedMessage('Buổi live đã kết thúc. Cảm ơn bạn đã tham gia.');
-                fetchRooms();
+                endLiveSession('Buổi live đã kết thúc. Cảm ơn bạn đã tham gia.');
               }}
             />
             <RoomAudioRenderer />
