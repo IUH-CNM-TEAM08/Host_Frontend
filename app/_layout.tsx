@@ -1,4 +1,6 @@
 import '@/src/polyfills/domException';
+import '@/src/utils/livekitSetup';
+
 import { SplashScreen, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { useFonts } from 'expo-font';

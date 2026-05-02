@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, ActivityIndicator, TextInput, TouchableOpacity, ScrollView, Alert, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import axios from 'axios';
 import { Stack } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -20,6 +20,8 @@ import { useCallback } from 'react';
 
 // Module-level variable lưu thời điểm bắt đầu live, không bị mất khi component remount
 let _nativeLiveStartTime: number | null = null;
+// Flag đánh dấu disconnect có chủ ý (end live / leave room) để không reconnect
+let _intentionalDisconnect = false;
 
 let LiveKitRoom: any;
 let useRoomContext: any;
@@ -304,7 +306,9 @@ export default function LiveScreen() {
     setRoomEnded(true);
     setRoomEndedMessage(message);
     AsyncStorage.removeItem(LIVE_ACTIVE_ROOM_KEY).catch(() => {});
-    fetchRooms();
+    // Delay fetchRooms để server kịp xóa phòng khỏi LiveKit
+    setTimeout(() => fetchRooms(), 1500);
+    setTimeout(() => fetchRooms(), 4000); // Lần 2 để chắc chắn
   }, []);
 
   if (error) {
@@ -318,11 +322,14 @@ export default function LiveScreen() {
 
   if (roomEnded) {
     return (
-      <View style={styles.center}>
-        <Text style={[styles.text, { color: '#111827', fontSize: 22, fontWeight: '700', marginBottom: 12 }]}>Buổi live đã kết thúc</Text>
-        <Text style={[styles.infoText, { color: '#6b7280', marginBottom: 20 }]}>{roomEndedMessage}</Text>
+      <View style={{ flex: 1, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 36 }}>📺</Text>
+        </View>
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>Buổi live đã kết thúc</Text>
+        <Text style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>{roomEndedMessage}</Text>
         <TouchableOpacity
-          style={[styles.button, { height: 44, paddingHorizontal: 20 }]}
+          style={{ backgroundColor: '#7c3aed', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 32, width: '100%', alignItems: 'center' }}
           onPress={() => {
             setRoomEnded(false);
             setJoinCode('');
@@ -330,7 +337,7 @@ export default function LiveScreen() {
             setCurrentRoomName('');
           }}
         >
-          <Text style={styles.buttonText}>Quay về danh sách phòng</Text>
+          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>← Quay về danh sách phòng</Text>
         </TouchableOpacity>
       </View>
     );
@@ -355,15 +362,39 @@ export default function LiveScreen() {
           connect={true}
           video={isHost}
           // Viewer cần subscribe audio của host để nghe voice.
-          audio={true}
+          audio={isHost}
           onConnected={() => {
             setRoomReady(true);
             setRoomReconnecting(false);
           }}
           onDisconnected={() => {
-            console.log('Native disconnected');
-            setRoomReady(false);
-            setRoomReconnecting(true);
+            console.log('Native disconnected, intentional:', _intentionalDisconnect);
+            if (_intentionalDisconnect) {
+              // Disconnect có chủ ý → không reconnect, reset flag
+              _intentionalDisconnect = false;
+              setRoomReady(false);
+              setRoomReconnecting(false);
+            } else {
+              // Kiểm tra xem phòng còn tồn tại không
+              // Delay 1.5s để server kịp xử lý xóa phòng
+              setRoomReady(false);
+              setTimeout(async () => {
+                try {
+                  const res = await liveApi.get('/api/live/rooms');
+                  const exists = (res.data?.rooms || []).some((r: any) => r?.name === currentRoomName);
+                  if (!exists) {
+                    // Phòng đã bị xóa → host đã kết thúc live
+                    handleRoomEnded('Buổi live đã kết thúc. Cảm ơn bạn đã tham gia.');
+                  } else {
+                    // Phòng vẫn tồn tại → mất mạng thật, cho phép reconnect
+                    setRoomReconnecting(true);
+                  }
+                } catch {
+                  // Không thể kiểm tra → coi như phòng đã đóng
+                  handleRoomEnded('Kết nối phòng live đã đóng.');
+                }
+              }, 1500);
+            }
           }}
         >
           <RoomView 
@@ -394,59 +425,77 @@ export default function LiveScreen() {
 
   if (preJoinCode !== null) {
     return (
-      <View style={styles.lobbyContainer}>
-        <Stack.Screen options={{ title: 'Chuẩn bị vào phòng' }} />
-        <View style={styles.preJoinCard}>
-          <Text style={styles.joinTitle}>Chuẩn bị tham gia</Text>
-          <Text style={styles.preJoinCodeText}>
-            Mã phòng: {preJoinCode}
-          </Text>
+      <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+        <Stack.Screen options={{ title: 'Chuẩn bị tham gia' }} />
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 32, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 20 }}>Chuẩn bị tham gia</Text>
+
+          {/* Info box */}
+          {!preJoinIsCreate ? (
+            <View style={{ backgroundColor: '#f1f5f9', borderRadius: 12, padding: 14, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#7c3aed' }}>
+              <Text style={{ color: '#1e293b', fontWeight: '700', fontSize: 14, marginBottom: 4 }}>Bạn đang vào xem live</Text>
+              <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 20 }}>Nếu đây không phải chủ phòng thì bạn chỉ xem và bình luận, không bật camera/micro.</Text>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: '#ede9fe', borderRadius: 12, padding: 14, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#7c3aed' }}>
+              <Text style={{ color: '#5b21b6', fontWeight: '700', fontSize: 14, marginBottom: 4 }}>🎥 Bạn đang tạo phòng live</Text>
+              <Text style={{ color: '#6d28d9', fontSize: 13, lineHeight: 20 }}>Mã phòng: <Text style={{ fontWeight: '700' }}>{preJoinCode}</Text></Text>
+            </View>
+          )}
+
+          {/* Display name */}
+          <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 }}>Tên hiển thị</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Tên hiển thị..."
+            style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#111827', marginBottom: 16 }}
+            placeholder="Nhập tên hiển thị..."
             placeholderTextColor="#9ca3af"
             value={participantDisplayName}
             onChangeText={setParticipantDisplayName}
           />
+
+          {/* Host options */}
           {preJoinIsCreate && (
             <>
-              <View style={styles.joinActionRow}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 }}>Thiết lập phòng</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
                 <TouchableOpacity
-                  style={[styles.secondaryBtn, preJoinCamOn && { backgroundColor: '#ede9fe', borderColor: '#7c3aed' }]}
+                  style={{ flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: preJoinCamOn ? '#7c3aed' : '#d1d5db', backgroundColor: preJoinCamOn ? '#ede9fe' : '#fff', alignItems: 'center' }}
                   onPress={() => setPreJoinCamOn(!preJoinCamOn)}
                 >
-                  <Text style={styles.secondaryBtnText}>{preJoinCamOn ? 'Tắt cam' : 'Bật cam'}</Text>
+                  <Text style={{ fontSize: 20, marginBottom: 2 }}>{preJoinCamOn ? '📷' : '📷'}</Text>
+                  <Text style={{ color: preJoinCamOn ? '#7c3aed' : '#6b7280', fontSize: 12, fontWeight: '600' }}>{preJoinCamOn ? 'Cam: Bật' : 'Cam: Tắt'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.secondaryBtn, preJoinMicOn && { backgroundColor: '#ede9fe', borderColor: '#7c3aed' }]}
+                  style={{ flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: preJoinMicOn ? '#7c3aed' : '#d1d5db', backgroundColor: preJoinMicOn ? '#ede9fe' : '#fff', alignItems: 'center' }}
                   onPress={() => setPreJoinMicOn(!preJoinMicOn)}
                 >
-                  <Text style={styles.secondaryBtnText}>{preJoinMicOn ? 'Tắt mic' : 'Bật mic'}</Text>
+                  <Text style={{ fontSize: 20, marginBottom: 2 }}>🎤</Text>
+                  <Text style={{ color: preJoinMicOn ? '#7c3aed' : '#6b7280', fontSize: 12, fontWeight: '600' }}>{preJoinMicOn ? 'Mic: Bật' : 'Mic: Tắt'}</Text>
                 </TouchableOpacity>
               </View>
               {!preJoinCamOn && (
-                <View style={styles.thumbnailSection}>
-                  <Text style={styles.thumbnailLabel}>Thumbnail khi tắt cam</Text>
+                <View style={{ backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', padding: 14, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 }}>Thumbnail khi tắt cam</Text>
                   {preJoinThumbnailUrl ? (
-                    <Image source={{ uri: preJoinThumbnailUrl }} style={styles.thumbnailPreview} resizeMode="cover" />
+                    <Image source={{ uri: preJoinThumbnailUrl }} style={{ width: '100%', height: 140, borderRadius: 8, marginBottom: 8 }} resizeMode="cover" />
                   ) : (
-                    <Text style={styles.thumbnailHint}>Chưa có thumbnail. Chọn ảnh để hiển thị ở danh sách phòng.</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>Chưa có thumbnail.</Text>
                   )}
-                  <View style={styles.joinActionRow}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
-                      style={[styles.secondaryBtn, (uploadingThumbnail || isJoiningRoom) && { opacity: 0.6 }]}
+                      style={{ flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#7c3aed', alignItems: 'center', opacity: (uploadingThumbnail || isJoiningRoom) ? 0.6 : 1 }}
                       disabled={uploadingThumbnail || isJoiningRoom}
                       onPress={handlePickThumbnail}
                     >
-                      <Text style={styles.secondaryBtnText}>{uploadingThumbnail ? 'Đang tải ảnh...' : (preJoinThumbnailUrl ? 'Đổi thumbnail' : 'Tải thumbnail')}</Text>
+                      <Text style={{ color: '#7c3aed', fontSize: 13, fontWeight: '600' }}>{uploadingThumbnail ? 'Đang tải...' : (preJoinThumbnailUrl ? 'Đổi ảnh' : '+ Tải ảnh')}</Text>
                     </TouchableOpacity>
                     {!!preJoinThumbnailUrl && (
                       <TouchableOpacity
-                        style={styles.secondaryBtn}
+                        style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: '#ef4444', alignItems: 'center' }}
                         disabled={uploadingThumbnail || isJoiningRoom}
                         onPress={() => setPreJoinThumbnailUrl('')}
                       >
-                        <Text style={styles.secondaryBtnText}>Xóa ảnh</Text>
+                        <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: '600' }}>Xóa</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -454,23 +503,25 @@ export default function LiveScreen() {
               )}
             </>
           )}
-          <View style={styles.joinActionRow}>
+
+          {/* Action buttons */}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
             <TouchableOpacity
-              style={styles.secondaryBtn}
+              style={{ paddingVertical: 14, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1.5, borderColor: '#d1d5db', backgroundColor: '#fff', alignItems: 'center' }}
               onPress={() => setPreJoinCode(null)}
               disabled={isJoiningRoom}
             >
-              <Text style={styles.secondaryBtnText}>Huỷ</Text>
+              <Text style={{ color: '#374151', fontSize: 15, fontWeight: '600' }}>Huỷ</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.primaryBtn, isJoiningRoom && { opacity: 0.75 }]}
+              style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#7c3aed', alignItems: 'center', opacity: isJoiningRoom ? 0.75 : 1 }}
               onPress={enterRoom}
               disabled={isJoiningRoom}
             >
-              {isJoiningRoom ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryBtnText}>Vào phòng</Text>}
+              {isJoiningRoom ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Vào phòng</Text>}
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -680,6 +731,7 @@ function RoomView({ roomName, isHost, canSubscribe, identity, initialMicOn, init
   const room = useRoomContext();
   const localParticipant = room.localParticipant;
   const isLeavingRef = useRef(false);
+  const intentionalDisconnectRef = useRef(false);
   const [trackVersion, setTrackVersion] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
   const [waitingParticipants, setWaitingParticipants] = useState<any[]>([]);
@@ -698,6 +750,8 @@ function RoomView({ roomName, isHost, canSubscribe, identity, initialMicOn, init
   const [showCommentPanel, setShowCommentPanel] = useState(true);
   const [showHostTools, setShowHostTools] = useState(false);
   const [dbGifts, setDbGifts] = useState<any[]>([]);
+  const [topDonors, setTopDonors] = useState<{name: string; amount: number; stickerName: string}[]>([]);
+  const [viewerCount, setViewerCount] = useState(0);
   const danmakuRef = useRef<DanmakuLayerRef>(null);
   const giftRef = useRef<GiftOverlayRef>(null);
 
@@ -757,7 +811,7 @@ useEffect(() => {
       if (!warningShownRef.current && elapsed >= maxSeconds - 60 && elapsed < maxSeconds) {
         warningShownRef.current = true;
         setShowTimeWarning(true);
-        Alert.alert('⚠️ Sắp hết giờ', `Bạn còn 1 phút live. Nâng cấp VIP để live lâu hơn!`);
+        // Bỏ Alert popup - chỉ hiện badge timer trên video
       }
 
       if (!expiredRef.current && elapsed >= maxSeconds) {
@@ -805,13 +859,20 @@ useEffect(() => {
 
 useEffect(() => {
   const bumpTracks = () => setTrackVersion((v) => v + 1);
+  const updateCount = () => {
+    // Tổng người tham gia = remote + bản thân (local)
+    setViewerCount(room.remoteParticipants.size + (isHost ? 0 : 1));
+  };
   room.on('participantConnected', bumpTracks);
   room.on('participantDisconnected', bumpTracks);
   room.on('trackSubscribed', bumpTracks);
   room.on('trackUnsubscribed', bumpTracks);
   room.on('trackPublished', bumpTracks);
   room.on('trackUnpublished', bumpTracks);
+  room.on('participantConnected', updateCount);
+  room.on('participantDisconnected', updateCount);
   bumpTracks();
+  updateCount();
   return () => {
     room.off('participantConnected', bumpTracks);
     room.off('participantDisconnected', bumpTracks);
@@ -819,13 +880,30 @@ useEffect(() => {
     room.off('trackUnsubscribed', bumpTracks);
     room.off('trackPublished', bumpTracks);
     room.off('trackUnpublished', bumpTracks);
+    room.off('participantConnected', updateCount);
+    room.off('participantDisconnected', updateCount);
   };
-}, [room]);
+}, [room, isHost]);
 
 useEffect(() => {
-  const handleRoomDisconnect = async () => {
+  const handleRoomDisconnect = async (reason?: number) => {
     if (isLeavingRef.current) return;
     if (isHost) return;
+    
+    console.log('Room disconnected, reason:', reason);
+    
+    // DisconnectReason values from LiveKit:
+    // 0 = UNKNOWN_REASON, 1 = CLIENT_INITIATED, 2 = DUPLICATE_IDENTITY,
+    // 3 = SERVER_SHUTDOWN, 4 = PARTICIPANT_REMOVED, 5 = ROOM_DELETED,
+    // 6 = STATE_MISMATCH, 7 = JOIN_FAILURE
+    // If server explicitly shut down or room was deleted, exit immediately
+    if (reason === 3 || reason === 4 || reason === 5) {
+      onRoomEnded('Buổi live đã kết thúc. Cảm ơn bạn đã tham gia.');
+      return;
+    }
+
+    // For other reasons (network issues etc), wait a bit then check if room still exists
+    await new Promise(resolve => setTimeout(resolve, 2000));
     try {
       const res = await liveApi.get('/api/live/rooms');
       const exists = (res.data?.rooms || []).some((r: any) => r?.name === roomName);
@@ -883,8 +961,23 @@ useEffect(() => {
       if (topic && topic !== 'chat') return;
       try {
         const rawText = new TextDecoder().decode(payload);
-        const isDanmaku = rawText.startsWith('\u200B[D]');
-        const cleanText = isDanmaku ? rawText.replace('\u200B[D]', '') : rawText;
+        // Try parse JSON first (web sends JSON wrapped messages)
+        let cleanText = rawText;
+        let isDanmaku = false;
+        try {
+          const parsed = JSON.parse(rawText);
+          if (parsed && typeof parsed.message === 'string') {
+            const msg = parsed.message;
+            isDanmaku = msg.startsWith('[D]') || msg.startsWith('\u200B[D]');
+            cleanText = isDanmaku ? msg.replace(/^(\u200B)?\[D\]/, '') : msg;
+          } else {
+            isDanmaku = rawText.startsWith('\u200B[D]');
+            cleanText = isDanmaku ? rawText.replace('\u200B[D]', '') : rawText;
+          }
+        } catch {
+          isDanmaku = rawText.startsWith('\u200B[D]');
+          cleanText = isDanmaku ? rawText.replace('\u200B[D]', '') : rawText;
+        }
 
         const msgId = `${Date.now()}-${Math.random()}`;
         setComments(prev => [
@@ -917,6 +1010,22 @@ useEffect(() => {
         const text = new TextDecoder().decode(payload);
         const parsed = JSON.parse(text);
         if (parsed?.type === 'gift') {
+          // Track top donors
+          setTopDonors(prev => {
+            const existing = prev.find(d => d.name === parsed.fromName);
+            const price = parsed.price || 0;
+            if (existing) {
+              return prev
+                .map(d => d.name === parsed.fromName ? { ...d, amount: d.amount + price, stickerName: parsed.stickerName } : d)
+                .sort((a, b) => b.amount - a.amount)
+                .slice(0, 5);
+            } else {
+              return [...prev, { name: parsed.fromName, amount: price, stickerName: parsed.stickerName }]
+                .sort((a, b) => b.amount - a.amount)
+                .slice(0, 5);
+            }
+          });
+
           // 1. Luôn xử lý âm thanh (nếu loa đang bật)
           if (isHost || isTtsEnabled) {
             const msg = parsed.message ? ` với lời nhắn ${parsed.message}` : '';
@@ -986,8 +1095,12 @@ useEffect(() => {
               setIsEndingLive(false);
               return;
             }
-            try { room.disconnect(); } catch {}
+            // Đánh dấu disconnect có chủ ý để không trigger reconnect
+            intentionalDisconnectRef.current = true;
+            _intentionalDisconnect = true;
+            // Gọi onRoomEnded TRƯỜC khi disconnect để UI chuyển ngay
             onRoomEnded('Buổi live đã kết thúc. Cảm ơn bạn đã tham gia.');
+            try { room.disconnect(); } catch {}
           } catch (err: any) {
             Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể kết thúc live.');
             setIsEndingLive(false);
@@ -1009,6 +1122,8 @@ useEffect(() => {
         text: 'Rời phòng',
         style: 'destructive',
         onPress: async () => {
+          intentionalDisconnectRef.current = true;
+          _intentionalDisconnect = true;
           isLeavingRef.current = true;
           try {
             room.disconnect();
@@ -1054,6 +1169,7 @@ useEffect(() => {
         stickerId: sticker.id,
         stickerName: sticker.name,
         stickerUrl: sticker.url,
+        price: sticker.price || 0,
         message: giftMessage || '',
         fromName: cleanName(localParticipant.name || localParticipant.identity),
         ts: Date.now(),
@@ -1086,32 +1202,40 @@ useEffect(() => {
     if (!trimmed) return;
 
     try {
-      const messageToSend = sendAsDanmaku ? `\u200B[D]${trimmed}` : trimmed;
-      const payload = new TextEncoder().encode(messageToSend);
+      // Gửi JSON format giống Web để cả 2 phía đọc được (tránh web crash khi JSON.parse)
+      const messageText = sendAsDanmaku ? `[D]${trimmed}` : trimmed;
+      const chatPayload = {
+        id: `${Date.now()}-${Math.random()}`,
+        message: messageText,
+        timestamp: Date.now(),
+        ignoreLegacy: false,
+      };
+      const payload = new TextEncoder().encode(JSON.stringify(chatPayload));
       await localParticipant.publishData(payload, { topic: 'chat', kind: DataPacket_Kind.RELIABLE });
       setNewComment('');
-      
-      // For self, if not using reliable broadcast update local UI
-      if (sendAsDanmaku && danmakuEnabled && danmakuRef.current) {
-         danmakuRef.current.addMessage({
-            id: `self-${Date.now()}`,
-            text: trimmed,
-            isSelf: true,
-         });
-      }
-    } catch (error) {
-      console.error('Không gửi được bình luận:', error);
-      const msgId = `${Date.now()}-${Math.random()}`;
+
+      // Hiện ngay bình luận của bản thân (optimistic)
+      const msgId = `self-${Date.now()}`;
       setComments(prev => [
         ...prev,
         {
           id: msgId,
-          author: localParticipant.name || 'Khách',
+          author: localParticipant.name || 'Bạn',
           text: trimmed,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
-      setNewComment('');
+
+      if (sendAsDanmaku && danmakuEnabled && danmakuRef.current) {
+        danmakuRef.current.addMessage({
+          id: msgId,
+          text: trimmed,
+          isSelf: true,
+        });
+      }
+    } catch (error) {
+      console.error('Không gửi được bình luận:', error);
+      Alert.alert('Lỗi', 'Không thể gửi bình luận. Vui lòng thử lại.');
     }
   };
 
@@ -1190,7 +1314,8 @@ useEffect(() => {
       const participant = hostParticipant;
       const source = pickSourceForParticipant(participant);
       if (source) {
-        return { participant, source };
+        const publication = participant.getTrackPublication?.(source);
+        return { participant, source, publication };
       }
     }
     return null;
@@ -1209,18 +1334,16 @@ useEffect(() => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}
+    >
+      {/* ===== VIDEO AREA ===== */}
       <View style={styles.videoContainer}>
-        {roomReconnecting && (
-          <View style={styles.connectionBadge}>
-            <Text style={styles.connectionBadgeText}>
-              Đang kết nối lại phòng live...
-            </Text>
-          </View>
-        )}
         {isHost && isPublishing && (screenTrack || cameraTrack) ? (
           <VideoTrack
-            trackRef={{ participant: localParticipant, source: screenTrack ? 'screen_share' : 'camera' }}
+            trackRef={{ participant: localParticipant, source: screenTrack ? 'screen_share' : 'camera', publication: screenTrack ? screenPublication : cameraPublication }}
             style={styles.video}
           />
         ) : !isHost && remoteTrackRef ? (
@@ -1230,213 +1353,119 @@ useEffect(() => {
           />
         ) : (
           <View style={styles.placeholder}>
-            <Text style={styles.text}>{isHost ? 'Chưa phát live' : 'Bạn đang xem live stream'}</Text>
-            {!isHost && <Text style={[styles.text, { fontSize: 14, color: '#94a3b8', marginTop: 8 }]}>Chỉ xem và bình luận, không bật camera/mic.</Text>}
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>⏳</Text>
+            <Text style={styles.text}>{isHost ? 'Chưa phát live' : 'Đang chờ host phát video...'}</Text>
+            {!isHost && <Text style={[styles.text, { fontSize: 13, color: '#94a3b8', marginTop: 6 }]}>Hãy giữ kết nối, live stream sẽ sớm bắt đầu</Text>}
           </View>
         )}
+
+        {/* Danmaku + Gift */}
         <DanmakuLayer ref={danmakuRef} enabled={danmakuEnabled} />
         <GiftOverlay ref={giftRef} />
-        {/* VIP Timer Overlay - hiện luôn khi là host, kể cả tắt cam */}
+
+        {/* Top-left: reconnecting badge */}
+        {roomReconnecting && (
+          <View style={styles.connectionBadge}>
+            <Text style={styles.connectionBadgeText}>↻ Đang kết nối lại...</Text>
+          </View>
+        )}
+
+        {/* Top-left: viewer count */}
+        <View style={{ position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
+          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#ef4444' }} />
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>LIVE</Text>
+          <Text style={{ color: '#fff', fontSize: 12 }}>• {viewerCount} người xem</Text>
+        </View>
+
+        {/* Top-right: VIP Timer */}
         {isHost && maxSeconds > 0 && (
           <View style={{
-            position: 'absolute', top: 10, right: 10,
-            backgroundColor: showTimeWarning ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.6)',
-            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6,
+            position: 'absolute', top: 12, right: 12,
+            backgroundColor: showTimeWarning ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.55)',
+            paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
           }}>
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
-              ⏱️ {formatTime(maxSeconds - liveElapsed)} 
-            </Text>
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>⏱️ {formatTime(Math.max(0, maxSeconds - liveElapsed))}</Text>
           </View>
         )}
-        {showTimeWarning && (
-          <View style={{
-            position: 'absolute', top: 50, left: 20, right: 20,
-            backgroundColor: 'rgba(239,68,68,0.95)', padding: 12, borderRadius: 12, alignItems: 'center',
-          }}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center' }}>
-              ⚠️ Còn 1 phút! Nâng cấp VIP để live lâu hơn
-            </Text>
-            {onUpgradeVip && (
+
+        {/* Bottom overlay controls on video */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+          {/* Host: cam/mic + end live buttons */}
+          {isHost && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 10, paddingTop: 8, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <TouchableOpacity
-                onPress={onUpgradeVip}
-                style={{
-                  marginTop: 8, backgroundColor: '#f59e0b', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
-                }}
+                style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: isPublishing ? '#ef4444' : '#16a34a', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
+                onPress={toggleCamera}
               >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>👑 Nâng cấp VIP</Text>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{isPublishing ? '📷 Tắt cam/mic' : '📷 Phát Live'}</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        )}
+              <TouchableOpacity
+                style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(220,38,38,0.85)', opacity: isEndingLive ? 0.7 : 1 }}
+                disabled={isEndingLive}
+                onPress={handleEndLive}
+              >
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{isEndingLive ? '⏹...' : '⏹ Kết thúc'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlBtn} onPress={copyLink}>
-          <Text style={styles.controlBtnText}>Chia sẻ phòng</Text>
+
+      {/* ===== CONTROL BAR (below video) ===== */}
+      <View style={{ backgroundColor: '#0f172a', paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: '#1e293b', alignItems: 'center' }}>
+        <TouchableOpacity
+          style={{ flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1e293b', alignItems: 'center' }}
+          onPress={copyLink}
+        >
+          <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '600' }}>🔗 Chia sẻ phòng</Text>
         </TouchableOpacity>
         {isHost && (
-          <>
-            <TouchableOpacity
-              style={[styles.controlBtn, { backgroundColor: isPublishing ? '#ef4444' : '#16a34a' }]}
-              onPress={toggleCamera}
-            >
-              <Text style={styles.controlBtnText}>{isPublishing ? 'Tắt cam/mic' : 'Phát Live'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.controlBtn, { backgroundColor: '#dc2626', opacity: isEndingLive ? 0.7 : 1 }]}
-              disabled={isEndingLive}
-              onPress={handleEndLive}
-            >
-              <Text style={styles.controlBtnText}>{isEndingLive ? 'Đang kết thúc...' : 'Kết thúc live'}</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: showHostTools ? '#7c3aed' : '#334155', backgroundColor: showHostTools ? '#ede9fe' : '#1e293b', alignItems: 'center' }}
+            onPress={() => setShowHostTools(!showHostTools)}
+          >
+            <Text style={{ color: showHostTools ? '#7c3aed' : '#94a3b8', fontSize: 12, fontWeight: '600' }}>⚙️ Công cụ</Text>
+          </TouchableOpacity>
         )}
         {!isHost && (
-          <TouchableOpacity style={[styles.controlBtn, { backgroundColor: '#334155' }]} onPress={handleLeaveRoom}>
-            <Text style={styles.controlBtnText}>Rời phòng</Text>
+          <TouchableOpacity
+            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: '#dc2626', alignItems: 'center' }}
+            onPress={handleLeaveRoom}
+          >
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>← Rời phòng</Text>
           </TouchableOpacity>
         )}
       </View>
-      {isHost && (
-        <View style={styles.hostToolsWrap}>
-          <TouchableOpacity style={styles.hostToolsToggle} onPress={() => setShowHostTools(!showHostTools)}>
-            <Text style={styles.hostToolsToggleText}>{showHostTools ? 'Ẩn công cụ host' : 'Hiện công cụ host'}</Text>
+
+      {/* ===== HOST TOOLS PANEL ===== */}
+      {isHost && showHostTools && (
+        <View style={{ backgroundColor: '#0f172a', paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8, borderTopWidth: 1, borderTopColor: '#1e293b' }}>
+          <TouchableOpacity
+            style={[styles.optionChip, danmakuEnabled && styles.optionChipActive]}
+            onPress={() => setDanmakuEnabled(!danmakuEnabled)}
+          >
+            <Text style={[styles.optionChipText, danmakuEnabled && styles.optionChipTextActive]}>{danmakuEnabled ? 'Chữ chạy: Bật' : 'Chữ chạy: Tắt'}</Text>
           </TouchableOpacity>
-          {showHostTools && (
-            <View style={styles.hostOptionRow}>
-              <TouchableOpacity
-                style={[styles.optionChip, danmakuEnabled && styles.optionChipActive]}
-                onPress={() => setDanmakuEnabled(!danmakuEnabled)}
-              >
-                <Text style={[styles.optionChipText, danmakuEnabled && styles.optionChipTextActive]}>{danmakuEnabled ? 'Hiện chữ: Bật' : 'Hiện chữ: Tắt'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.optionChip, isTtsEnabled && styles.optionChipActive]}
-                onPress={() => setIsTtsEnabled(!isTtsEnabled)}
-              >
-                <Text style={[styles.optionChipText, isTtsEnabled && styles.optionChipTextActive]}>{isTtsEnabled ? 'Loa donate: Bật' : 'Loa donate: Tắt'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.optionChip, isGiftEnabled && styles.optionChipActive]}
-                onPress={() => setIsGiftEnabled(!isGiftEnabled)}
-              >
-                <Text style={[styles.optionChipText, isGiftEnabled && styles.optionChipTextActive]}>{isGiftEnabled ? 'Hiệu ứng quà: Bật' : 'Hiệu ứng quà: Tắt'}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
-      <View style={styles.commentSection}>
-        <View style={styles.commentTitleRow}>
-          <Text style={styles.commentTitle}>Bình luận ({comments.length})</Text>
-          <TouchableOpacity style={styles.collapseBtn} onPress={() => setShowCommentPanel(!showCommentPanel)}>
-            <Text style={styles.collapseBtnText}>{showCommentPanel ? 'Thu gọn' : 'Mở rộng'}</Text>
+          <TouchableOpacity
+            style={[styles.optionChip, isTtsEnabled && styles.optionChipActive]}
+            onPress={() => setIsTtsEnabled(!isTtsEnabled)}
+          >
+            <Text style={[styles.optionChipText, isTtsEnabled && styles.optionChipTextActive]}>{isTtsEnabled ? 'Loa donate: Bật' : 'Loa donate: Tắt'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.optionChip, isGiftEnabled && styles.optionChipActive]}
+            onPress={() => setIsGiftEnabled(!isGiftEnabled)}
+          >
+            <Text style={[styles.optionChipText, isGiftEnabled && styles.optionChipTextActive]}>{isGiftEnabled ? 'Hiệu ứng quà: Bật' : 'Hiệu ứng quà: Tắt'}</Text>
           </TouchableOpacity>
         </View>
-        {showCommentPanel && (
-          <>
-            <ScrollView style={styles.commentList}>
-              {comments.length === 0 ? (
-                <Text style={styles.commentEmpty}>Chưa có bình luận nào. Hãy tham gia thảo luận.</Text>
-              ) : comments.map(c => (
-                <View key={c.id} style={styles.commentItem}>
-                  <View style={styles.commentHeader}>
-                    <Text style={styles.commentAuthor}>{c.author}</Text>
-                    <Text style={styles.commentTime}>{c.time}</Text>
-                  </View>
-                  <Text style={styles.commentText}>{c.text}</Text>
-                </View>
-              ))}
-            </ScrollView>
-            <View style={styles.commentInputRow}>
-              <TouchableOpacity
-                style={[styles.roundBtn, sendAsDanmaku && styles.roundBtnActive]}
-                onPress={() => setSendAsDanmaku(!sendAsDanmaku)}
-              >
-                <Text style={styles.roundBtnText}>{sendAsDanmaku ? 'D' : 'C'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roundBtn, showStickerPicker && styles.roundBtnActive]}
-                onPress={() => setShowStickerPicker(!showStickerPicker)}
-              >
-                <Text style={styles.roundBtnText}>🎁</Text>
-              </TouchableOpacity>
-              <TextInput
-                style={styles.commentInput}
-                placeholder={sendAsDanmaku ? "Nhập chữ chạy..." : "Bình luận..."}
-                placeholderTextColor="#9ca3af"
-                value={newComment}
-                onChangeText={setNewComment}
-              />
-              <TouchableOpacity style={styles.commentSendBtn} onPress={handleSendComment}>
-                <Text style={styles.commentSendText}>Gửi</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </View>
-      {showStickerPicker && (
-        <View style={styles.giftPanel}>
-          {!selectedGiftSticker ? (
-            <>
-              <View style={styles.giftCategoryRow}>
-                {STICKER_CATEGORIES.map(cat => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => setActiveGiftCategory(cat.id)}
-                    style={[styles.giftCategoryBtn, activeGiftCategory === cat.id && styles.giftCategoryBtnActive]}
-                  >
-                    <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                {(dbGifts.length > 0 ? dbGifts : STICKERS).filter(s => s.category === activeGiftCategory).map(s => (
-                  <TouchableOpacity key={s.id} onPress={() => setSelectedGiftSticker(s)} style={styles.giftItemBtn}>
-                    <Image
-                      source={typeof s.url === 'string' ? { uri: s.url } : s.url}
-                      style={{ width: 40, height: 40 }}
-                    />
-                    {s.price && <Text style={styles.giftPrice}>{s.price}</Text>}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </>
-          ) : (
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Image
-                    source={typeof selectedGiftSticker.url === 'string' ? { uri: selectedGiftSticker.url } : selectedGiftSticker.url}
-                    style={{ width: 30, height: 30 }}
-                  />
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Tặng {selectedGiftSticker.name}</Text>
-                </View>
-                <TouchableOpacity onPress={() => setSelectedGiftSticker(null)}>
-                  <Text style={{ color: '#9ca3af' }}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              <TextInput
-                style={{ backgroundColor: '#374151', color: '#fff', padding: 8, borderRadius: 8, fontSize: 12 }}
-                value={giftMessage}
-                onChangeText={setGiftMessage}
-                placeholder="Nhập lời nhắn..."
-                placeholderTextColor="#9ca3af"
-                autoFocus
-              />
-              <TouchableOpacity
-                style={{ backgroundColor: '#7c3aed', padding: 8, borderRadius: 8, alignItems: 'center' }}
-                onPress={() => sendGift(selectedGiftSticker)}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Gửi ngay</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
       )}
+
+      {/* ===== APPROVAL LIST (Host) ===== */}
       {isHost && waitingParticipants.length > 0 && (
         <View style={styles.approvalList}>
-          <Text style={styles.approvalTitle}>Yêu cầu tham gia:</Text>
-          <ScrollView style={{ maxHeight: 200 }}>
+          <Text style={styles.approvalTitle}>Yêu cầu tham gia ({waitingParticipants.length}):</Text>
+          <ScrollView style={{ maxHeight: 160 }}>
             {waitingParticipants.map(p => (
               <View key={p.identity} style={styles.waitingItem}>
                 <Text style={styles.waitingName}>{p.identity}</Text>
@@ -1453,16 +1482,137 @@ useEffect(() => {
           </ScrollView>
         </View>
       )}
-      
-      {/* TTS Debug Overlay intentionally removed for cleaner mobile UX */}
-    </View>
+
+      {/* ===== TOP DONATE PANEL ===== */}
+      {topDonors.length > 0 && (
+        <View style={{ backgroundColor: '#1e1b4b', paddingHorizontal: 14, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#312e81' }}>
+          <Text style={{ color: '#a78bfa', fontSize: 11, fontWeight: '700', marginBottom: 6 }}>🏆 Top Donate</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {topDonors.slice(0, 5).map((donor, i) => (
+                <View key={donor.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(124,58,237,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
+                  <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>#{i + 1}</Text>
+                  <Text style={{ color: '#e2e8f0', fontSize: 11, fontWeight: '600' }}>{donor.name}</Text>
+                  {donor.amount > 0 && <Text style={{ color: '#a78bfa', fontSize: 10 }}>{donor.amount}★</Text>}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {/* ===== COMMENT SECTION ===== */}
+      <View style={[styles.commentSection, { maxHeight: showCommentPanel ? (showStickerPicker ? 380 : 260) : 60 }]}>
+        <TouchableOpacity style={styles.commentTitleRow} onPress={() => setShowCommentPanel(!showCommentPanel)}>
+          <Text style={styles.commentTitle}>💬 Bình luận ({comments.length})</Text>
+          <Text style={styles.collapseBtnText}>{showCommentPanel ? '▼' : '▲'}</Text>
+        </TouchableOpacity>
+        {showCommentPanel && (
+          <ScrollView style={styles.commentList} ref={r => { if (r && comments.length > 0) r.scrollToEnd({ animated: false }); }}>
+            {comments.length === 0 ? (
+              <Text style={styles.commentEmpty}>Chưa có bình luận nào.</Text>
+            ) : comments.map(c => (
+              <View key={c.id} style={styles.commentItem}>
+                <Text style={styles.commentAuthor}>{c.author}: <Text style={styles.commentText}>{c.text}</Text></Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+        {/* ===== GIFT PICKER ===== */}
+        {showStickerPicker && (
+          <View style={styles.giftPanel}>
+            {!selectedGiftSticker ? (
+              <>
+                <View style={styles.giftCategoryRow}>
+                  {STICKER_CATEGORIES.map(cat => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => setActiveGiftCategory(cat.id)}
+                      style={[styles.giftCategoryBtn, activeGiftCategory === cat.id && styles.giftCategoryBtnActive]}
+                    >
+                      <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                  {(dbGifts.length > 0 ? dbGifts : STICKERS).filter(s => s.category === activeGiftCategory).map(s => (
+                    <TouchableOpacity key={s.id} onPress={() => setSelectedGiftSticker(s)} style={styles.giftItemBtn}>
+                      <Image
+                        source={typeof s.url === 'string' ? { uri: s.url } : s.url}
+                        style={{ width: 40, height: 40 }}
+                      />
+                      {s.price && <Text style={styles.giftPrice}>{s.price}</Text>}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : (
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Image
+                      source={typeof selectedGiftSticker.url === 'string' ? { uri: selectedGiftSticker.url } : selectedGiftSticker.url}
+                      style={{ width: 30, height: 30 }}
+                    />
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Tặng {selectedGiftSticker.name}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setSelectedGiftSticker(null)}>
+                    <Text style={{ color: '#9ca3af', fontSize: 18 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <TextInput
+                  style={{ backgroundColor: '#374151', color: '#fff', padding: 8, borderRadius: 8, fontSize: 12 }}
+                  value={giftMessage}
+                  onChangeText={setGiftMessage}
+                  placeholder="Nhập lời nhắn..."
+                  placeholderTextColor="#9ca3af"
+                  autoFocus
+                />
+                <TouchableOpacity
+                  style={{ backgroundColor: '#7c3aed', padding: 10, borderRadius: 8, alignItems: 'center' }}
+                  onPress={() => sendGift(selectedGiftSticker)}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Gửi ngay</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.commentInputRow}>
+          <TouchableOpacity
+            style={[styles.roundBtn, sendAsDanmaku && styles.roundBtnActive]}
+            onPress={() => setSendAsDanmaku(!sendAsDanmaku)}
+          >
+            <Text style={styles.roundBtnText}>{sendAsDanmaku ? 'D' : 'C'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.roundBtn, showStickerPicker && styles.roundBtnActive]}
+            onPress={() => setShowStickerPicker(!showStickerPicker)}
+          >
+            <Text style={styles.roundBtnText}>🎁</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.commentInput}
+            placeholder={sendAsDanmaku ? 'Chữ chạy...' : 'Bình luận...'}
+            placeholderTextColor="#9ca3af"
+            value={newComment}
+            onChangeText={setNewComment}
+          />
+          <TouchableOpacity style={styles.commentSendBtn} onPress={handleSendComment}>
+            <Text style={styles.commentSendText}>Gửi</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  videoContainer: { flex: 1, backgroundColor: '#111' },
+  videoContainer: { height: '45%', minHeight: 200, backgroundColor: '#111' },
   video: { flex: 1, width: '100%' },
   placeholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   connectionBadge: { position: 'absolute', top: 12, left: 12, zIndex: 10, backgroundColor: 'rgba(15,23,42,0.86)', borderWidth: 1, borderColor: '#334155', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },

@@ -859,32 +859,58 @@ export default function AdminPage() {
 
                   {(timeRange === 'month' || timeRange === 'week') && (
                     <View style={{backgroundColor:P.white, borderRadius:10, borderWidth:1, borderColor:P.border, overflow:'hidden'}}>
-                      <select 
-                        value={selectedMonth} 
-                        onChange={(e)=>setSelectedMonth(parseInt(e.target.value))}
-                        style={{
-                          padding:8, fontSize:12, fontWeight:'700', border:'none', backgroundColor:'transparent', color:P.text, outline:'none', cursor:'pointer'
-                        }}
-                      >
-                        {Array.from({length:12},(_,i)=>i+1).map(m => (
-                          <option key={m} value={m}>{at(`Tháng ${m}`,`Month ${m}`)}</option>
-                        ))}
-                      </select>
+                      {Platform.OS === 'web' ? (
+                        <select
+                          value={selectedMonth}
+                          onChange={(e: any)=>setSelectedMonth(parseInt(e.target.value))}
+                          style={{
+                            padding:8, fontSize:12, fontWeight:'700', border:'none', backgroundColor:'transparent', color:P.text, outline:'none', cursor:'pointer'
+                          }}
+                        >
+                          {Array.from({length:12},(_,i)=>i+1).map(m => (
+                            <option key={m} value={m}>{at(`Tháng ${m}`,`Month ${m}`)}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Picker
+                          selectedValue={selectedMonth}
+                          onValueChange={(val: number) => setSelectedMonth(val)}
+                          style={{height:40, width:130, color:P.text}}
+                          dropdownIconColor={P.text}
+                        >
+                          {Array.from({length:12},(_,i)=>i+1).map(m => (
+                            <Picker.Item key={m} label={at(`Tháng ${m}`,`Month ${m}`)} value={m} />
+                          ))}
+                        </Picker>
+                      )}
                     </View>
                   )}
 
                   <View style={{backgroundColor:P.white, borderRadius:10, borderWidth:1, borderColor:P.border, overflow:'hidden'}}>
-                    <select 
-                      value={selectedYear} 
-                      onChange={(e)=>setSelectedYear(parseInt(e.target.value))}
-                      style={{
-                        padding:8, fontSize:12, fontWeight:'700', border:'none', backgroundColor:'transparent', color:P.text, outline:'none', cursor:'pointer'
-                      }}
-                    >
-                      {[2024, 2025, 2026, 2027].map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
+                    {Platform.OS === 'web' ? (
+                      <select
+                        value={selectedYear}
+                        onChange={(e: any)=>setSelectedYear(parseInt(e.target.value))}
+                        style={{
+                          padding:8, fontSize:12, fontWeight:'700', border:'none', backgroundColor:'transparent', color:P.text, outline:'none', cursor:'pointer'
+                        }}
+                      >
+                        {[2024, 2025, 2026, 2027].map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Picker
+                        selectedValue={selectedYear}
+                        onValueChange={(val: number) => setSelectedYear(val)}
+                        style={{height:40, width:100, color:P.text}}
+                        dropdownIconColor={P.text}
+                      >
+                        {[2024, 2025, 2026, 2027].map(y => (
+                          <Picker.Item key={y} label={`${y}`} value={y} />
+                        ))}
+                      </Picker>
+                    )}
                   </View>
                 </View>
 

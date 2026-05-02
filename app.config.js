@@ -13,11 +13,11 @@ export default {
         ios: {
             bundleIdentifier: "com.thachtaki.thach",
             infoPlist: {
-              NSPhotoLibraryUsageDescription: "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh nhóm.",
-              // HTTP tới IP LAN (backend dev) — không có thì iOS có thể chặn, axios báo Network Error.
-              NSAppTransportSecurity: {
-                NSAllowsLocalNetworking: true,
-              },
+                NSPhotoLibraryUsageDescription: "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh nhóm.",
+                // HTTP tới IP LAN (backend dev) — không có thì iOS có thể chặn, axios báo Network Error.
+                NSAppTransportSecurity: {
+                    NSAllowsLocalNetworking: true,
+                },
             }
         },
         android: {
@@ -56,7 +56,7 @@ export default {
             [
                 "expo-image-picker",
                 {
-                  "photosPermission": "The app accesses your photos to let you share them with your friends."
+                    "photosPermission": "The app accesses your photos to let you share them with your friends."
                 }
             ]
         ],
@@ -67,7 +67,7 @@ export default {
             HOST_BE: process.env.HOST_BE,
             PORT_BE: process.env.PORT_BE,
             eas: {
-                projectId: "34106f8e-d605-4148-bf4a-d7a8a543f41a",
+                projectId: "06f447ea-f1dc-47ad-9f46-01bcc8c488e7",
             },
         },
     },

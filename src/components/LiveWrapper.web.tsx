@@ -652,21 +652,18 @@ function InnerRoomUI({ roomCode, displayName, isHost, canSubscribe, identity, in
     if (!confirm('Bạn có chắc chắn muốn kết thúc live?')) return;
     try {
       setIsEndingLive(true);
-      const response = await fetch(`${BACKEND_URL}/api/live/room?roomName=${encodeURIComponent(roomCode)}&hostId=${encodeURIComponent(identity)}`, {
-        method: 'DELETE',
-      });
-      const data = await response.json();
-      if (!data.success) {
-        alert(data.error || 'Không thể kết thúc live.');
-        setIsEndingLive(false);
-        return;
-      }
-      sessionStorage.removeItem('liveStartTime');
-      // Kết thúc UI ngay, không phụ thuộc event disconnected để tránh treo spinner.
+      
+      // Cập nhật UI ngay lập tức
       onRoomEnded();
       if (room?.disconnect) {
         try { room.disconnect(); } catch {}
       }
+
+      // Fire and forget API call
+      fetch(`${BACKEND_URL}/api/live/room?roomName=${encodeURIComponent(roomCode)}&hostId=${encodeURIComponent(identity)}`, {
+        method: 'DELETE',
+      }).catch(err => console.error('Lỗi API kết thúc live:', err));
+
     } catch (error) {
       console.error('Kết thúc live lỗi:', error);
       alert('Có lỗi khi kết thúc live.');
@@ -835,12 +832,61 @@ function InnerRoomUI({ roomCode, displayName, isHost, canSubscribe, identity, in
     room.on('dataReceived', handleReactionData);
     room.on('dataReceived', handleGiftData);
 
+    // Handle chat messages sent from mobile via publishData (not LiveKit useChat protocol)
+    const handleNativeChatData = (payload: Uint8Array, participant?: any, _kind?: any, topic?: string) => {
+      if (topic !== 'chat') return;
+      // Skip messages from self
+      if (participant?.identity === localParticipant?.identity) return;
+      try {
+        const rawText = new TextDecoder().decode(payload);
+        let cleanText = rawText;
+        let isDanmaku = false;
+        try {
+          const parsed = JSON.parse(rawText);
+          if (parsed && typeof parsed.message === 'string') {
+            const msg = parsed.message;
+            isDanmaku = msg.startsWith('[D]') || msg.startsWith('\u200B[D]');
+            cleanText = isDanmaku ? msg.replace(/^(\u200B)?\[D\]/, '') : msg;
+          } else {
+            // Plain text fallback
+            isDanmaku = rawText.startsWith('\u200B[D]');
+            cleanText = isDanmaku ? rawText.replace('\u200B[D]', '') : rawText;
+          }
+        } catch {
+          // Plain text fallback
+          isDanmaku = rawText.startsWith('\u200B[D]');
+          cleanText = isDanmaku ? rawText.replace('\u200B[D]', '') : rawText;
+        }
+
+        const msgId = `native-${Date.now()}-${Math.random()}`;
+        addChatMessage({
+          id: msgId,
+          message: cleanText,
+          timestamp: Date.now(),
+          from: participant ? { identity: participant.identity, name: participant.name || participant.identity } : undefined,
+          isSystem: false,
+        });
+
+        if (isDanmaku && danmakuEnabled && danmakuRef.current) {
+          danmakuRef.current.addMessage({
+            id: msgId,
+            text: cleanText,
+            isSelf: false,
+          });
+        }
+      } catch (error) {
+        console.warn('[Live] Native chat parse error:', error);
+      }
+    };
+    room.on('dataReceived', handleNativeChatData);
+
     return () => {
       room.off('participantConnected', handleJoin);
       room.off('participantDisconnected', handleLeave);
       room.off('disconnected', handleRoomDisconnect);
       room.off('dataReceived', handleReactionData);
       room.off('dataReceived', handleGiftData);
+      room.off('dataReceived', handleNativeChatData);
     };
   }, [room, roomCode, localParticipant?.identity, onRoomEnded, addChatMessage, spawnReaction, isHost, isTtsEnabled, speakText, isGiftEnabled, updateTopDonors]);
 
@@ -1344,7 +1390,7 @@ function InnerRoomUI({ roomCode, displayName, isHost, canSubscribe, identity, in
           }}
         >
           <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px dashed #7c3aed', borderTopColor: 'transparent', animation: 'live-end-spin 1s linear infinite' }} />
-          <div style={{ fontSize: 14, color: '#4b5563', fontWeight: 700 }}>Dang ket thuc live...</div>
+          <div style={{ fontSize: 14, color: '#4b5563', fontWeight: 700 }}>Đang kết thúc live...</div>
         </div>
       )}
 
@@ -1784,6 +1830,7 @@ export default function LiveScreenWeb() {
         setCurrentDisplayName(roomDisplayName);
         setPreJoinCode(null);
         // liveStartTime đã được set ở Lobby button
+        endingSessionRef.current = false; // Reset guard cho phiên mới
         setJoined(true);
         setRoomStarting(true);
         setRoomReady(false);
@@ -1933,7 +1980,7 @@ export default function LiveScreenWeb() {
   // ── Joined view ──
 
   const endLiveSession = useCallback((message: string, showVipModal = false) => {
-    if (endingSessionRef.current) return;
+    // Đánh dấu đã kết thúc để onDisconnected không ghi đè
     endingSessionRef.current = true;
     sessionStorage.removeItem('liveStartTime');
     disconnect();
@@ -1943,7 +1990,9 @@ export default function LiveScreenWeb() {
     setRoomReconnecting(false);
     setRoomEndedMessage(message);
     setRoomEnded(true);
-    fetchRooms();
+    // Delay fetchRooms để server kịp xóa phòng khỏi LiveKit
+    setTimeout(() => fetchRooms(), 1500);
+    setTimeout(() => fetchRooms(), 4000);
     if (showVipModal) {
       setShowVipPurchase(true);
     }
@@ -1994,8 +2043,28 @@ export default function LiveScreenWeb() {
           }}
           onDisconnected={() => {
             setRoomReady(false);
-            setRoomReconnecting(true);
-            console.log('[LiveKit] Room disconnected, attempting to keep UI state...');
+            console.log('[LiveKit] Room disconnected, checking if room still exists...');
+            // Nếu endLiveSession đã được gọi (host bấm kết thúc), không cần kiểm tra lại
+            if (endingSessionRef.current) return;
+            // Delay 1.5s rồi kiểm tra phòng còn tồn tại không
+            setTimeout(async () => {
+              if (endingSessionRef.current) return; // double check
+              try {
+                const res = await fetch(`${BACKEND_URL}/api/live/rooms`);
+                const data = await res.json();
+                const exists = (data.rooms || []).some((r: any) => r?.name === currentRoomCode);
+                if (!exists) {
+                  // Phòng đã bị xóa → host đã kết thúc live
+                  endLiveSession('Buổi live đã kết thúc. Cảm ơn bạn đã tham gia.');
+                } else {
+                  // Phòng vẫn tồn tại → mất mạng, cho reconnect
+                  setRoomReconnecting(true);
+                }
+              } catch {
+                // Không thể kiểm tra → coi như phòng đã đóng
+                endLiveSession('Kết nối phòng live đã đóng.');
+              }
+            }, 1500);
           }}
           onError={handleLiveKitError}
           style={{ width: '100%', height: '100%' }}
@@ -2176,7 +2245,7 @@ export default function LiveScreenWeb() {
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
                           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', opacity: 0.9 }} />
-                          <Text style={styles.roomInfo}>LIVE · {room.numParticipants || 0} người xem</Text>
+                          <Text style={styles.roomInfo}>LIVE · {Math.max(0, (room.numParticipants || 0) - 1)} người xem</Text>
                         </View>
                       </View>
                     </View>

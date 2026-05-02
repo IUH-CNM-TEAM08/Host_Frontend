@@ -3,7 +3,8 @@ import { useParticipants } from '@livekit/components-react';
 
 export const ViewerCount = () => {
   const participants = useParticipants(); // includes local + remote participants
-  const count = participants.length;
+  // Bỏ host ra khỏi số người xem (chỉ đếm viewer)
+  const count = Math.max(0, participants.length - 1);
 
   return (
     <div
