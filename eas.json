@@ -9,10 +9,22 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_HOST_BE": "https://zala-2nxo2.ondigitalocean.app",
+        "EXPO_PUBLIC_PORT_BE": "3000",
+        "EXPO_PUBLIC_WEBRTC_CALL_ORIGIN": "https://zala-2nxo2.ondigitalocean.app",
+        "EXPO_PUBLIC_MOCK_MODE": "false"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_HOST_BE": "https://zala-2nxo2.ondigitalocean.app",
+        "EXPO_PUBLIC_PORT_BE": "3000",
+        "EXPO_PUBLIC_WEBRTC_CALL_ORIGIN": "https://zala-2nxo2.ondigitalocean.app",
+        "EXPO_PUBLIC_MOCK_MODE": "false"
+      }
     }
   }
 }
