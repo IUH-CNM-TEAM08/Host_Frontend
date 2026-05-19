@@ -254,6 +254,15 @@ export const UserProvider = ({children}: UserProviderProps) => {
     useEffect(() => {
         if (!user?.id) return;
         const handleKicked = (data: any) => {
+            const target = data?.targetClientType; // 'WEB' | 'MOBILE' | null
+            const currentIsWeb = Platform.OS === 'web';
+            const currentIsMobile = Platform.OS === 'ios' || Platform.OS === 'android';
+
+            // Nếu server chỉ kick WEB mà mình đang ở mobile → bỏ qua
+            if (target === 'WEB' && currentIsMobile) return;
+            // Nếu server chỉ kick MOBILE mà mình đang ở web → bỏ qua
+            if (target === 'MOBILE' && currentIsWeb) return;
+
             const msg = data?.reason || 'Tài khoản của bạn đã được đăng nhập ở một trình duyệt khác.';
             setKickedMessage(msg);
             setKickedModalVisible(true);
