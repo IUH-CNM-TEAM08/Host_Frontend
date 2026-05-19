@@ -1389,228 +1389,231 @@ useEffect(() => {
         )}
 
         {/* Bottom overlay controls on video */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+        <View style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
           {/* Host: cam/mic + end live buttons */}
           {isHost && (
-            <View style={{ paddingHorizontal: 14, paddingBottom: 10, paddingTop: 8, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', alignItems: 'center' }}>
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: isPublishing ? '#ef4444' : '#16a34a', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
+                style={{ flex: 1, paddingVertical: 10, borderRadius: 999, backgroundColor: isPublishing ? 'rgba(0,0,0,0.6)' : 'rgba(22, 163, 74, 0.85)', borderWidth: 1, borderColor: isPublishing ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
                 onPress={toggleCamera}
               >
                 <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{isPublishing ? '📷 Tắt cam/mic' : '📷 Phát Live'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(220,38,38,0.85)', opacity: isEndingLive ? 0.7 : 1 }}
+                style={{ paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999, backgroundColor: 'rgba(220,38,38,0.9)', opacity: isEndingLive ? 0.7 : 1, shadowColor: '#ef4444', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
                 disabled={isEndingLive}
                 onPress={handleEndLive}
               >
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{isEndingLive ? '⏹...' : '⏹ Kết thúc'}</Text>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>{isEndingLive ? '⏹...' : '⏹ Kết thúc'}</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       </View>
 
-      {/* ===== CONTROL BAR (below video) ===== */}
-      <View style={{ backgroundColor: '#0f172a', paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: '#1e293b', alignItems: 'center' }}>
-        <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1e293b', alignItems: 'center' }}
-          onPress={copyLink}
-        >
-          <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '600' }}>🔗 Chia sẻ phòng</Text>
-        </TouchableOpacity>
-        {isHost && (
+      {/* ===== CONTROLS AND COMMENTS (SCROLLABLE) ===== */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+        {/* ===== CONTROL BAR (below video) ===== */}
+        <View style={{ backgroundColor: '#ffffff', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', gap: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', alignItems: 'center' }}>
           <TouchableOpacity
-            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: showHostTools ? '#7c3aed' : '#334155', backgroundColor: showHostTools ? '#ede9fe' : '#1e293b', alignItems: 'center' }}
-            onPress={() => setShowHostTools(!showHostTools)}
+            style={{ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#d1d5db', backgroundColor: '#f9fafb', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
+            onPress={copyLink}
           >
-            <Text style={{ color: showHostTools ? '#7c3aed' : '#94a3b8', fontSize: 12, fontWeight: '600' }}>⚙️ Công cụ</Text>
+            <Text style={{ color: '#374151', fontSize: 13, fontWeight: '600' }}>🔗 Chia sẻ phòng</Text>
           </TouchableOpacity>
-        )}
-        {!isHost && (
-          <TouchableOpacity
-            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: '#dc2626', alignItems: 'center' }}
-            onPress={handleLeaveRoom}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>← Rời phòng</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* ===== HOST TOOLS PANEL ===== */}
-      {isHost && showHostTools && (
-        <View style={{ backgroundColor: '#0f172a', paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8, borderTopWidth: 1, borderTopColor: '#1e293b' }}>
-          <TouchableOpacity
-            style={[styles.optionChip, danmakuEnabled && styles.optionChipActive]}
-            onPress={() => setDanmakuEnabled(!danmakuEnabled)}
-          >
-            <Text style={[styles.optionChipText, danmakuEnabled && styles.optionChipTextActive]}>{danmakuEnabled ? 'Chữ chạy: Bật' : 'Chữ chạy: Tắt'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.optionChip, isTtsEnabled && styles.optionChipActive]}
-            onPress={() => setIsTtsEnabled(!isTtsEnabled)}
-          >
-            <Text style={[styles.optionChipText, isTtsEnabled && styles.optionChipTextActive]}>{isTtsEnabled ? 'Loa donate: Bật' : 'Loa donate: Tắt'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.optionChip, isGiftEnabled && styles.optionChipActive]}
-            onPress={() => setIsGiftEnabled(!isGiftEnabled)}
-          >
-            <Text style={[styles.optionChipText, isGiftEnabled && styles.optionChipTextActive]}>{isGiftEnabled ? 'Hiệu ứng quà: Bật' : 'Hiệu ứng quà: Tắt'}</Text>
-          </TouchableOpacity>
+          {isHost && (
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: showHostTools ? '#7c3aed' : '#d1d5db', backgroundColor: showHostTools ? '#ede9fe' : '#f9fafb', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
+              onPress={() => setShowHostTools(!showHostTools)}
+            >
+              <Text style={{ color: showHostTools ? '#5b21b6' : '#374151', fontSize: 13, fontWeight: '600' }}>⚙️ Công cụ</Text>
+            </TouchableOpacity>
+          )}
+          {!isHost && (
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: '#dc2626', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
+              onPress={handleLeaveRoom}
+            >
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>← Rời phòng</Text>
+            </TouchableOpacity>
+          )}
         </View>
-      )}
 
-      {/* ===== APPROVAL LIST (Host) ===== */}
-      {isHost && waitingParticipants.length > 0 && (
-        <View style={styles.approvalList}>
-          <Text style={styles.approvalTitle}>Yêu cầu tham gia ({waitingParticipants.length}):</Text>
-          <ScrollView style={{ maxHeight: 160 }}>
-            {waitingParticipants.map(p => (
-              <View key={p.identity} style={styles.waitingItem}>
-                <Text style={styles.waitingName}>{p.identity}</Text>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  <TouchableOpacity style={styles.approveBtn} onPress={() => approveUser(p.identity)}>
-                    <Text style={styles.approveText}>Duyệt</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.approveBtn, { backgroundColor: '#ef4444' }]} onPress={() => kickUser(p.identity)}>
-                    <Text style={styles.approveText}>Từ chối</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* ===== TOP DONATE PANEL ===== */}
-      {topDonors.length > 0 && (
-        <View style={{ backgroundColor: '#1e1b4b', paddingHorizontal: 14, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#312e81' }}>
-          <Text style={{ color: '#a78bfa', fontSize: 11, fontWeight: '700', marginBottom: 6 }}>🏆 Top Donate</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {topDonors.slice(0, 5).map((donor, i) => (
-                <View key={donor.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(124,58,237,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
-                  <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '800' }}>#{i + 1}</Text>
-                  <Text style={{ color: '#e2e8f0', fontSize: 11, fontWeight: '600' }}>{donor.name}</Text>
-                  {donor.amount > 0 && <Text style={{ color: '#a78bfa', fontSize: 10 }}>{donor.amount}★</Text>}
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-      )}
-
-      {/* ===== COMMENT SECTION ===== */}
-      <View style={[styles.commentSection, { maxHeight: showCommentPanel ? (showStickerPicker ? 380 : 260) : 60 }]}>
-        <TouchableOpacity style={styles.commentTitleRow} onPress={() => setShowCommentPanel(!showCommentPanel)}>
-          <Text style={styles.commentTitle}>💬 Bình luận ({comments.length})</Text>
-          <Text style={styles.collapseBtnText}>{showCommentPanel ? '▼' : '▲'}</Text>
-        </TouchableOpacity>
-        {showCommentPanel && (
-          <ScrollView style={styles.commentList} ref={r => { if (r && comments.length > 0) r.scrollToEnd({ animated: false }); }}>
-            {comments.length === 0 ? (
-              <Text style={styles.commentEmpty}>Chưa có bình luận nào.</Text>
-            ) : comments.map(c => (
-              <View key={c.id} style={styles.commentItem}>
-                <Text style={styles.commentAuthor}>{c.author}: <Text style={styles.commentText}>{c.text}</Text></Text>
-              </View>
-            ))}
-          </ScrollView>
-        )}
-        {/* ===== GIFT PICKER ===== */}
-        {showStickerPicker && (
-          <View style={styles.giftPanel}>
-            {!selectedGiftSticker ? (
-              <>
-                <View style={styles.giftCategoryRow}>
-                  {STICKER_CATEGORIES.map(cat => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      onPress={() => setActiveGiftCategory(cat.id)}
-                      style={[styles.giftCategoryBtn, activeGiftCategory === cat.id && styles.giftCategoryBtnActive]}
-                    >
-                      <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                  {(dbGifts.length > 0 ? dbGifts : STICKERS).filter(s => s.category === activeGiftCategory).map(s => (
-                    <TouchableOpacity key={s.id} onPress={() => setSelectedGiftSticker(s)} style={styles.giftItemBtn}>
-                      <Image
-                        source={typeof s.url === 'string' ? { uri: s.url } : s.url}
-                        style={{ width: 40, height: 40 }}
-                      />
-                      {s.price && <Text style={styles.giftPrice}>{s.price}</Text>}
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            ) : (
-              <View style={{ gap: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Image
-                      source={typeof selectedGiftSticker.url === 'string' ? { uri: selectedGiftSticker.url } : selectedGiftSticker.url}
-                      style={{ width: 30, height: 30 }}
-                    />
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Tặng {selectedGiftSticker.name}</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setSelectedGiftSticker(null)}>
-                    <Text style={{ color: '#9ca3af', fontSize: 18 }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  style={{ backgroundColor: '#374151', color: '#fff', padding: 8, borderRadius: 8, fontSize: 12 }}
-                  value={giftMessage}
-                  onChangeText={setGiftMessage}
-                  placeholder="Nhập lời nhắn..."
-                  placeholderTextColor="#9ca3af"
-                  autoFocus
-                />
-                <TouchableOpacity
-                  style={{ backgroundColor: '#7c3aed', padding: 10, borderRadius: 8, alignItems: 'center' }}
-                  onPress={() => sendGift(selectedGiftSticker)}
-                >
-                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>Gửi ngay</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+        {/* ===== HOST TOOLS PANEL ===== */}
+        {isHost && showHostTools && (
+          <View style={{ backgroundColor: '#ffffff', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb' }}>
+            <TouchableOpacity
+              style={[styles.optionChip, danmakuEnabled && styles.optionChipActive]}
+              onPress={() => setDanmakuEnabled(!danmakuEnabled)}
+            >
+              <Text style={[styles.optionChipText, danmakuEnabled && styles.optionChipTextActive]}>{danmakuEnabled ? 'Chữ chạy: Bật' : 'Chữ chạy: Tắt'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.optionChip, isTtsEnabled && styles.optionChipActive]}
+              onPress={() => setIsTtsEnabled(!isTtsEnabled)}
+            >
+              <Text style={[styles.optionChipText, isTtsEnabled && styles.optionChipTextActive]}>{isTtsEnabled ? 'Loa donate: Bật' : 'Loa donate: Tắt'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.optionChip, isGiftEnabled && styles.optionChipActive]}
+              onPress={() => setIsGiftEnabled(!isGiftEnabled)}
+            >
+              <Text style={[styles.optionChipText, isGiftEnabled && styles.optionChipTextActive]}>{isGiftEnabled ? 'Hiệu ứng quà: Bật' : 'Hiệu ứng quà: Tắt'}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        <View style={styles.commentInputRow}>
-          <TouchableOpacity
-            style={[styles.roundBtn, sendAsDanmaku && styles.roundBtnActive]}
-            onPress={() => setSendAsDanmaku(!sendAsDanmaku)}
-          >
-            <Text style={styles.roundBtnText}>{sendAsDanmaku ? 'D' : 'C'}</Text>
+        {/* ===== APPROVAL LIST (Host) ===== */}
+        {isHost && waitingParticipants.length > 0 && (
+          <View style={[styles.approvalList, { position: 'relative', bottom: 0, left: 0, width: 'auto', marginHorizontal: 14, marginTop: 10, backgroundColor: '#ffffff', borderColor: '#e5e7eb', borderWidth: 1 }]}>
+            <Text style={styles.approvalTitle}>Yêu cầu tham gia ({waitingParticipants.length}):</Text>
+            <ScrollView style={{ maxHeight: 160 }}>
+              {waitingParticipants.map(p => (
+                <View key={p.identity} style={styles.waitingItem}>
+                  <Text style={styles.waitingName}>{p.identity}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <TouchableOpacity style={styles.approveBtn} onPress={() => approveUser(p.identity)}>
+                      <Text style={styles.approveText}>Duyệt</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.approveBtn, { backgroundColor: '#ef4444' }]} onPress={() => kickUser(p.identity)}>
+                      <Text style={styles.approveText}>Từ chối</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ===== TOP DONATE PANEL ===== */}
+        {topDonors.length > 0 && (
+          <View style={{ backgroundColor: '#faf5ff', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#e9d5ff' }}>
+            <Text style={{ color: '#7c3aed', fontSize: 12, fontWeight: '700', marginBottom: 8 }}>🏆 Top Donate</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {topDonors.slice(0, 5).map((donor, i) => (
+                  <View key={donor.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ede9fe', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#ddd6fe' }}>
+                    <Text style={{ color: '#d97706', fontSize: 12, fontWeight: '900' }}>#{i + 1}</Text>
+                    <Text style={{ color: '#111827', fontSize: 12, fontWeight: '600' }}>{donor.name}</Text>
+                    {donor.amount > 0 && <Text style={{ color: '#6d28d9', fontSize: 11, fontWeight: '700' }}>{donor.amount}★</Text>}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ===== COMMENT SECTION ===== */}
+        <View style={styles.commentSection}>
+          <TouchableOpacity style={styles.commentTitleRow} onPress={() => setShowCommentPanel(!showCommentPanel)}>
+            <Text style={styles.commentTitle}>💬 Bình luận ({comments.length})</Text>
+            <Text style={styles.collapseBtnText}>{showCommentPanel ? '▼' : '▲'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.roundBtn, showStickerPicker && styles.roundBtnActive]}
-            onPress={() => setShowStickerPicker(!showStickerPicker)}
-          >
-            <Text style={styles.roundBtnText}>🎁</Text>
-          </TouchableOpacity>
-          <TextInput
-            style={styles.commentInput}
-            placeholder={sendAsDanmaku ? 'Chữ chạy...' : 'Bình luận...'}
-            placeholderTextColor="#9ca3af"
-            value={newComment}
-            onChangeText={setNewComment}
-          />
-          <TouchableOpacity style={styles.commentSendBtn} onPress={handleSendComment}>
-            <Text style={styles.commentSendText}>Gửi</Text>
-          </TouchableOpacity>
+          {showCommentPanel && (
+            <ScrollView style={styles.commentList} ref={r => { if (r && comments.length > 0) r.scrollToEnd({ animated: false }); }}>
+              {comments.length === 0 ? (
+                <Text style={styles.commentEmpty}>Chưa có bình luận nào.</Text>
+              ) : comments.map(c => (
+                <View key={c.id} style={styles.commentItem}>
+                  <Text style={styles.commentAuthor}>{c.author}: <Text style={styles.commentText}>{c.text}</Text></Text>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+          {/* ===== GIFT PICKER ===== */}
+          {showStickerPicker && (
+            <View style={styles.giftPanel}>
+              {!selectedGiftSticker ? (
+                <>
+                  <View style={styles.giftCategoryRow}>
+                    {STICKER_CATEGORIES.map(cat => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        onPress={() => setActiveGiftCategory(cat.id)}
+                        style={[styles.giftCategoryBtn, activeGiftCategory === cat.id && styles.giftCategoryBtnActive]}
+                      >
+                        <Text style={{ fontSize: 18 }}>{cat.icon}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+                    {(dbGifts.length > 0 ? dbGifts : STICKERS).filter(s => s.category === activeGiftCategory).map(s => (
+                      <TouchableOpacity key={s.id} onPress={() => setSelectedGiftSticker(s)} style={styles.giftItemBtn}>
+                        <Image
+                          source={typeof s.url === 'string' ? { uri: s.url } : s.url}
+                          style={{ width: 44, height: 44 }}
+                        />
+                        {s.price && <Text style={styles.giftPrice}>{s.price}</Text>}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Image
+                        source={typeof selectedGiftSticker.url === 'string' ? { uri: selectedGiftSticker.url } : selectedGiftSticker.url}
+                        style={{ width: 36, height: 36 }}
+                      />
+                      <Text style={{ color: '#111827', fontSize: 14, fontWeight: 'bold' }}>Tặng {selectedGiftSticker.name}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setSelectedGiftSticker(null)} style={{ padding: 4 }}>
+                      <Text style={{ color: '#6b7280', fontSize: 20 }}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    style={{ backgroundColor: '#f9fafb', color: '#111827', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 10, fontSize: 14, borderWidth: 1, borderColor: '#d1d5db' }}
+                    value={giftMessage}
+                    onChangeText={setGiftMessage}
+                    placeholder="Nhập lời nhắn..."
+                    placeholderTextColor="#9ca3af"
+                    autoFocus
+                  />
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#7c3aed', paddingVertical: 12, borderRadius: 10, alignItems: 'center', shadowColor: '#7c3aed', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }}
+                    onPress={() => sendGift(selectedGiftSticker)}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>Gửi ngay</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
+          <View style={styles.commentInputRow}>
+            <TouchableOpacity
+              style={[styles.roundBtn, sendAsDanmaku && styles.roundBtnActive]}
+              onPress={() => setSendAsDanmaku(!sendAsDanmaku)}
+            >
+              <Text style={styles.roundBtnText}>{sendAsDanmaku ? 'D' : 'C'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.roundBtn, showStickerPicker && styles.roundBtnActive]}
+              onPress={() => setShowStickerPicker(!showStickerPicker)}
+            >
+              <Text style={styles.roundBtnText}>🎁</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.commentInput}
+              placeholder={sendAsDanmaku ? 'Chữ chạy...' : 'Bình luận...'}
+              placeholderTextColor="#64748b"
+              value={newComment}
+              onChangeText={setNewComment}
+            />
+            <TouchableOpacity style={styles.commentSendBtn} onPress={handleSendComment}>
+              <Text style={styles.commentSendText}>Gửi</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#f3f4f6' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   videoContainer: { height: '45%', minHeight: 200, backgroundColor: '#111' },
   video: { flex: 1, width: '100%' },
@@ -1624,15 +1627,15 @@ const styles = StyleSheet.create({
   hostToolsToggle: { alignSelf: 'flex-start', borderRadius: 999, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1f2937', paddingHorizontal: 10, paddingVertical: 6, marginBottom: 8 },
   hostToolsToggleText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' },
   hostOptionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: '#0f172a', paddingHorizontal: 12, paddingBottom: 10, paddingTop: 4 },
-  optionChip: { borderRadius: 999, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1f2937', paddingHorizontal: 10, paddingVertical: 6 },
+  optionChip: { borderRadius: 999, borderWidth: 1, borderColor: '#d1d5db', backgroundColor: '#f9fafb', paddingHorizontal: 10, paddingVertical: 6 },
   optionChipActive: { borderColor: '#7c3aed', backgroundColor: '#ede9fe' },
-  optionChipText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' },
+  optionChipText: { color: '#4b5563', fontSize: 12, fontWeight: '600' },
   optionChipTextActive: { color: '#5b21b6' },
   text: { color: '#fff', marginTop: 10, fontSize: 16 },
   errorText: { color: 'red', textAlign: 'center', fontSize: 16, marginBottom: 10 },
   infoText: { color: '#374151', textAlign: 'center', fontSize: 14, lineHeight: 20 },
   lobbyContainer: { flex: 1, backgroundColor: '#f3f4f6' },
-  lobbyContent: { padding: 16, paddingBottom: 28, gap: 12 },
+  lobbyContent: { padding: 16, paddingBottom: 120, gap: 12 },
   heroCard: { backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#ddd6fe', padding: 16, shadowColor: '#7c3aed', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   heroTitle: { color: '#5b21b6', fontSize: 20, fontWeight: '800' },
   heroSubtitle: { color: '#6b7280', fontSize: 13, marginTop: 4 },
@@ -1684,43 +1687,43 @@ const styles = StyleSheet.create({
   emptyCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', padding: 16 },
   emptyTitle: { color: '#111827', fontSize: 15, fontWeight: '700', marginBottom: 6 },
   emptyText: { color: '#6b7280', fontSize: 14, lineHeight: 20 },
-  commentSection: { backgroundColor: '#0b1220', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12, borderTopWidth: 1, borderTopColor: '#1f2937' },
+  commentSection: { backgroundColor: '#ffffff', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
   commentTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  commentTitle: { color: '#f8fafc', fontSize: 16, fontWeight: '700' },
-  collapseBtn: { borderRadius: 999, borderWidth: 1, borderColor: '#334155', backgroundColor: '#1f2937', paddingHorizontal: 12, paddingVertical: 6 },
-  collapseBtnText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' },
+  commentTitle: { color: '#111827', fontSize: 16, fontWeight: '700' },
+  collapseBtn: { borderRadius: 999, borderWidth: 1, borderColor: '#d1d5db', backgroundColor: '#f9fafb', paddingHorizontal: 12, paddingVertical: 6 },
+  collapseBtnText: { color: '#6b7280', fontSize: 12, fontWeight: '600' },
   commentList: { maxHeight: 180, marginBottom: 12 },
-  commentEmpty: { color: '#94a3b8', fontSize: 14 },
-  commentItem: { marginBottom: 10, padding: 10, backgroundColor: '#0f172a', borderRadius: 12, borderWidth: 1, borderColor: '#1f2937' },
+  commentEmpty: { color: '#6b7280', fontSize: 14 },
+  commentItem: { marginBottom: 10, padding: 10, backgroundColor: '#f9fafb', borderRadius: 12, borderWidth: 1, borderColor: '#f3f4f6' },
   commentHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  commentAuthor: { color: '#f8fafc', fontWeight: '700' },
-  commentTime: { color: '#94a3b8', fontSize: 12 },
-  commentText: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 },
+  commentAuthor: { color: '#111827', fontWeight: '700' },
+  commentTime: { color: '#6b7280', fontSize: 12 },
+  commentText: { color: '#4b5563', fontSize: 14, lineHeight: 20 },
   commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  roundBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#1f2937', borderWidth: 1, borderColor: '#334155', justifyContent: 'center', alignItems: 'center' },
-  roundBtnActive: { backgroundColor: '#6d28d9', borderColor: '#6d28d9' },
-  roundBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  commentInput: { flex: 1, backgroundColor: '#1f2937', color: '#f8fafc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: '#334155' },
+  roundBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#d1d5db', justifyContent: 'center', alignItems: 'center' },
+  roundBtnActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+  roundBtnText: { color: '#374151', fontSize: 12, fontWeight: '700' },
+  commentInput: { flex: 1, backgroundColor: '#f3f4f6', color: '#111827', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: '#d1d5db' },
   commentSendBtn: { backgroundColor: '#6d28d9', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 },
   commentSendText: { color: '#fff', fontWeight: '700' },
-  giftPanel: { backgroundColor: '#0f172a', borderTopWidth: 1, borderTopColor: '#1f2937', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 14, gap: 10 },
+  giftPanel: { backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 14, gap: 10 },
   giftCategoryRow: { flexDirection: 'row', gap: 10, marginBottom: 2 },
-  giftCategoryBtn: { width: 36, height: 36, borderRadius: 12, borderWidth: 1, borderColor: '#334155', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f2937' },
+  giftCategoryBtn: { width: 36, height: 36, borderRadius: 12, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' },
   giftCategoryBtnActive: { borderColor: '#7c3aed', backgroundColor: '#ede9fe' },
-  giftItemBtn: { backgroundColor: '#374151', padding: 6, borderRadius: 10, alignItems: 'center', minWidth: 56 },
-  giftPrice: { color: '#f59e0b', fontSize: 10, fontWeight: 'bold' },
-  approvalList: { position: 'absolute', bottom: 100, left: 20, backgroundColor: 'rgba(0,0,0,0.8)', padding: 15, borderRadius: 12, width: 250, zIndex: 10 },
-  approvalTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
+  giftItemBtn: { backgroundColor: '#f9fafb', padding: 6, borderRadius: 10, alignItems: 'center', minWidth: 56, borderWidth: 1, borderColor: '#e5e7eb' },
+  giftPrice: { color: '#d97706', fontSize: 10, fontWeight: 'bold' },
+  approvalList: { position: 'absolute', bottom: 100, left: 20, backgroundColor: '#ffffff', padding: 15, borderRadius: 12, width: 250, zIndex: 10, borderWidth: 1, borderColor: '#e5e7eb' },
+  approvalTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
   waitingItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  waitingName: { color: '#e5e7eb', flex: 1, fontSize: 14 },
+  waitingName: { color: '#374151', flex: 1, fontSize: 14 },
   approveBtn: { backgroundColor: '#10b981', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   approveText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   // VIP styles
-  vipSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb' },
-  vipBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  vipSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb', gap: 10 },
+  vipBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   vipBadge: { color: '#fff', fontSize: 13, fontWeight: '800', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
   vipExpiryText: { color: '#6b7280', fontSize: 11 },
-  vipActions: { flexDirection: 'row', gap: 8 },
+  vipActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   regulationsBtn: { backgroundColor: '#e5e7eb', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   regulationsBtnText: { color: '#374151', fontSize: 12, fontWeight: '600' },
   upgradeBtn: { backgroundColor: '#7c3aed', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },

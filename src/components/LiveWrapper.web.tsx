@@ -2121,8 +2121,8 @@ export default function LiveScreenWeb() {
   return (
     <ScrollView style={styles.lobbyScroll} contentContainerStyle={styles.lobbyContainer} showsVerticalScrollIndicator={true}>
       {/* VIP Badge & Actions */}
-      <View style={{ width: '100%', maxWidth: 860, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, backgroundColor: '#ffffff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ width: '100%', maxWidth: 860, flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, backgroundColor: '#ffffff', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: vipTier === 'VIP2' ? '#ef4444' : vipTier === 'VIP1' ? '#f59e0b' : '#6b7280' }}>
             <LiveIcon name={vipTier === 'VIP0' ? 'spark' : 'heart'} size={13} color="#ffffff" />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>{vipTier}</Text>
@@ -2133,7 +2133,7 @@ export default function LiveScreenWeb() {
             </Text>
           )}
         </View>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
           <TouchableOpacity style={{ backgroundColor: '#7c3aed', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }} onPress={() => setShowRegulations(true)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <LiveIcon name="shield" size={14} color="#ffffff" />
@@ -2289,7 +2289,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     padding: 28,
     alignItems: 'center',
-    paddingBottom: 36,
+    paddingBottom: 120,
   },
   title: { fontSize: 32, fontWeight: '800', color: '#111827', marginBottom: 8, marginTop: 0, letterSpacing: -0.4 },
 
