@@ -120,7 +120,9 @@ export default function QRScanner({
     const [permission, requestPermission] = useCameraPermissions();
     const qrLock = useRef(false);
     const [isMounted, setIsMounted] = useState(false);
-    const { t } = useTranslation();
+    const i18n = useTranslation();
+    // Safe fallback: nếu I18nProvider chưa mount (Modal render sớm), t trả key gốc
+    const t = i18n?.t ?? ((key: string) => key);
 
     const handleLoginQr = async (qrId: string) => {
         try {
