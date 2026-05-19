@@ -120,6 +120,7 @@ export default function QRScanner({
     const [permission, requestPermission] = useCameraPermissions();
     const qrLock = useRef(false);
     const [isMounted, setIsMounted] = useState(false);
+    const { t } = useTranslation();
 
     const handleLoginQr = async (qrId: string) => {
         try {
