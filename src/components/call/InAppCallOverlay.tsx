@@ -47,15 +47,17 @@ type HostAction =
   | "toggleEffects"
   | "hangUp";
 
-/* ─── Web control bar (unchanged) ───────────────────────────────────────────── */
+/* ─── Web control bar ───────────────────────────────────────────── */
 function HostControlBar({
   onAction,
   bottomInset,
   micMuted,
+  cameraMuted,
 }: {
   onAction: (a: HostAction) => void;
   bottomInset: number;
   micMuted: boolean;
+  cameraMuted: boolean;
 }) {
   return (
     <View style={[styles.hostBar, { paddingBottom: Math.max(12, bottomInset) }]}>
@@ -74,12 +76,18 @@ function HostControlBar({
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.hostBtn}
+        style={[styles.hostBtn, cameraMuted && styles.hostBtnMuted]}
         onPress={() => onAction("toggleCamera")}
-        accessibilityLabel="Camera"
+        accessibilityLabel={cameraMuted ? "Bật cam" : "Tắt cam"}
       >
-        <Ionicons name="videocam" size={22} color="#fff" />
-        <Text style={styles.hostLbl}>Cam</Text>
+        <Ionicons
+          name={cameraMuted ? "videocam-off" : "videocam"}
+          size={22}
+          color={cameraMuted ? "rgba(255,255,255,0.55)" : "#fff"}
+        />
+        <Text style={[styles.hostLbl, cameraMuted && styles.hostLblMuted]}>
+          {cameraMuted ? "Cam off" : "Cam"}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.hostBtn}
@@ -117,10 +125,12 @@ function MobileHostControlBar({
   onAction,
   bottomInset,
   micMuted,
+  cameraMuted,
 }: {
   onAction: (a: HostAction) => void;
   bottomInset: number;
   micMuted: boolean;
+  cameraMuted: boolean;
 }) {
   return (
     <View style={[styles.mobileBar, { paddingBottom: Math.max(24, bottomInset + 12) }]}>
@@ -158,12 +168,18 @@ function MobileHostControlBar({
 
         {/* Camera */}
         <TouchableOpacity
-          style={styles.mobileBtnSm}
+          style={[styles.mobileBtnSm, cameraMuted && styles.mobileBtnSmActive]}
           onPress={() => onAction("toggleCamera")}
-          accessibilityLabel="Camera"
+          accessibilityLabel={cameraMuted ? "Bật cam" : "Tắt cam"}
         >
-          <Ionicons name="videocam" size={28} color="#fff" />
-          <Text style={styles.mobileLblSm}>Cam</Text>
+          <Ionicons
+            name={cameraMuted ? "videocam-off" : "videocam"}
+            size={28}
+            color={cameraMuted ? "rgba(255,255,255,0.40)" : "#fff"}
+          />
+          <Text style={[styles.mobileLblSm, cameraMuted && styles.mobileLblSmMuted]}>
+            {cameraMuted ? "Cam off" : "Cam"}
+          </Text>
         </TouchableOpacity>
 
         {/* Effects */}
@@ -192,10 +208,12 @@ function WebrtcFrame({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const insets = useSafeAreaInsets();
   const [micMuted, setMicMuted] = useState(false);
+  const [cameraMuted, setCameraMuted] = useState(false);
   const [hasPermissions, setHasPermissions] = useState(Platform.OS === "web");
 
   useEffect(() => {
     setMicMuted(false);
+    setCameraMuted(false);
   }, [url]);
 
   useEffect(() => {
@@ -246,6 +264,11 @@ function WebrtcFrame({
       if (action === "toggleMute") {
         dispatchHost("toggleMute");
         setMicMuted((m) => !m);
+        return;
+      }
+      if (action === "toggleCamera") {
+        dispatchHost("toggleCamera");
+        setCameraMuted((c) => !c);
         return;
       }
       dispatchHost(action);
@@ -300,6 +323,7 @@ function WebrtcFrame({
         {/* Thanh điều khiển React — luôn clickable vì nằm NGOÀI iframe */}
         <HostControlBar
           micMuted={micMuted}
+          cameraMuted={cameraMuted}
           onAction={handleAction}
           bottomInset={insets.bottom}
         />
@@ -320,7 +344,10 @@ function WebrtcFrame({
         javaScriptEnabled={true}
         domStorageEnabled={true}
         mediaCapturePermissionGrantType="grant"
-        nestedScrollEnabled
+        nestedScrollEnabled={false}
+        scrollEnabled={false}
+        hideKeyboardAccessoryView={true}
+        keyboardDisplayRequiresUserAction={true}
         overScrollMode="never"
         onLoadEnd={() => dispatchHost("hideControls")}
         onMessage={(e) => {
@@ -335,6 +362,7 @@ function WebrtcFrame({
       />
       <MobileHostControlBar
         micMuted={micMuted}
+        cameraMuted={cameraMuted}
         onAction={handleAction}
         bottomInset={insets.bottom}
       />
@@ -470,12 +498,12 @@ const TAB_BAR_Z = 100;
 const styles = StyleSheet.create({
   overlayRoot: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: TAB_BAR_Z + 1000,
-    elevation: TAB_BAR_Z + 1000,
+    zIndex: 9999,
+    elevation: 99,
   },
   overlayInner: {
     flex: 1,
-    backgroundColor: "rgba(7, 10, 18, 0.94)",
+    backgroundColor: "rgba(7, 10, 18, 1)",
   },
   webrtcWrap: {
     flex: 1,

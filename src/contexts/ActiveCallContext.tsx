@@ -221,7 +221,9 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
               type: callType,
               group: "1",
             })
-          : baseWebrtcUrl
+          : appendWebrtcQueryParams(baseWebrtcUrl, {
+              type: callType,
+            })
       );
       setActiveCall({
         phase: "outgoing_ringing",
@@ -363,7 +365,9 @@ export function ActiveCallProvider({ children }: { children: React.ReactNode }) 
                 type: callType,
                 group: "1",
               })
-            : baseWebrtcUrl
+            : appendWebrtcQueryParams(baseWebrtcUrl, {
+                type: callType,
+              })
         );
         setActiveCall({
           phase: "incoming_ringing",

@@ -40,7 +40,7 @@ export const setupAxios = async () => {
     if (isAxiosSetup) return;
 
     axios.defaults.baseURL = API_URL;
-    axios.defaults.timeout = 15000;
+    axios.defaults.timeout = Platform.OS === 'web' ? 15000 : 30000;
     axios.defaults.headers.post['Content-Type'] = 'application/json';
 
     if (isDev) {
