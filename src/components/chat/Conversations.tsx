@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {Alert, FlatList, Image, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {FontAwesome, Ionicons, MaterialCommunityIcons} from '@expo/vector-icons';
 import { conversationService as ConversationService } from '@/src/api/services/conversation.service';
@@ -113,6 +114,27 @@ export default function Conversations({
         participantAvatarsRef.current = participantAvatars;
     }, [participantAvatars]);
 
+    // Load cached conversations on mount (Cache-First/SWR UX optimization)
+    useEffect(() => {
+        const loadCachedConversations = async () => {
+            if (!user?.id) return;
+            try {
+                const cachedData = await AsyncStorage.getItem(`cached_conversations_${user.id}`);
+                if (cachedData) {
+                    const parsed = JSON.parse(cachedData);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setConversations(parsed);
+                        setLoading(false); // Disable initial spinner instantly as we have cache
+                        console.log('[Cache] Loaded conversations from AsyncStorage instantly!');
+                    }
+                }
+            } catch (err) {
+                console.error('[Cache] Error reading conversations from AsyncStorage:', err);
+            }
+        };
+        loadCachedConversations();
+    }, [user?.id]);
+
     // Group Invites State
     const [groupInvitesCount, setGroupInvitesCount] = useState(0);
     const [showGroupInvitesModal, setShowGroupInvitesModal] = useState(false);
@@ -138,7 +160,12 @@ export default function Conversations({
         
         console.log("[Conversations] Fetching conversations from server... (force=" + force + ")");
         lastFetchTime.current = now;
-        setLoading(true);
+        
+        // SWR: Chỉ hiện spinner loading khi chưa có dữ liệu cache trong state
+        if (conversationsRef.current.length === 0) {
+            setLoading(true);
+        }
+
         try {
             const response = await ConversationService.getConversations();
             if (!response.success) {
@@ -151,6 +178,13 @@ export default function Conversations({
             const convs = Array.isArray(response.conversations) ? response.conversations : [];
             setError(null);
             setConversations(convs);
+
+            // Ghi đè bộ nhớ đệm mới nhất của user hiện tại
+            if (user?.id) {
+                AsyncStorage.setItem(`cached_conversations_${user.id}`, JSON.stringify(convs)).catch((e) => {
+                    console.error('[Cache] Error saving conversations to AsyncStorage:', e);
+                });
+            }
 
             const onlineStatus: Record<string, boolean> = {};
             convs.forEach((conv: Conversation) => {
