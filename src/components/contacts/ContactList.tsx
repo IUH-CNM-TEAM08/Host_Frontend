@@ -77,19 +77,24 @@ export default function ContactList() {
                     );
                     setSentRequestIds(new Set(pendingOutgoing.map((r) => r.receiverId)));
                 }
-                // Tạo mảng tạm để lưu thông tin bạn bè
-                const tempFriends: FriendInfo[] = [];
-                for(const request of response.friendRequests) {
+                // Tải thông tin tất cả bạn bè song song để loại bỏ nghẽn cổ chai N+1 API
+                const friendPromises = response.friendRequests.map(async (request) => {
                     const friendId = request.senderId === user.id ? request.receiverId : request.senderId;
-                    const friend = await UserService.getUserById(friendId);
-                    if(friend.success && friend.user) {
-                        tempFriends.push({
-                            ...friend.user,
-                            friendRequestDate: request.createAt
-                        } as FriendInfo);
+                    try {
+                        const friend = await UserService.getUserById(friendId);
+                        if (friend.success && friend.user) {
+                            return {
+                                ...friend.user,
+                                friendRequestDate: request.createAt
+                            } as FriendInfo;
+                        }
+                    } catch (err) {
+                        console.error('Error fetching friend user info parallel:', friendId, err);
                     }
-                }
-                // Cập nhật state friends một lần duy nhất
+                    return null;
+                });
+                const resolvedFriends = await Promise.all(friendPromises);
+                const tempFriends = resolvedFriends.filter((f): f is FriendInfo => f !== null);
                 setFriends(tempFriends);
             } else {
                 setError(response.message);

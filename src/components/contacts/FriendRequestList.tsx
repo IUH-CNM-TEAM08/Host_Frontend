@@ -43,7 +43,7 @@ export default function FriendRequestList() {
             friendAccepted.forEach(request => uniqueSenderIds.add(request.senderId));
             friendSent.forEach(request => uniqueSenderIds.add(request.senderId));
 
-            for (const senderId of uniqueSenderIds) {
+            const promises = Array.from(uniqueSenderIds).map(async (senderId) => {
                 if (!senderNames[senderId] || !senderAvatars[senderId]) {
                     try {
                         const response = await UserService.getUserById(senderId);
@@ -61,7 +61,8 @@ export default function FriendRequestList() {
                         console.error('Error fetching user:', error);
                     }
                 }
-            }
+            });
+            await Promise.all(promises);
         };
 
         fetchSenderInfo();
