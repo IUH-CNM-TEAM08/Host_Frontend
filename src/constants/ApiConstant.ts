@@ -89,7 +89,7 @@ function getWebrtcCallOrigin(): string {
 			
 			// Nếu chạy FE trên localhost (web), luôn dùng localhost cho WebRTC
 			// để bỏ qua trang cảnh báo của Pinggy/Ngrok và đảm bảo secure-context.
-			const isLocalSecureHost = feHost === "localhost" || feHost === "127.0.0.1";
+			const isLocalSecureHost = (feHost === "localhost" || feHost === "127.0.0.1") && !fallback.startsWith("https:");
 			if (isLocalSecureHost) {
 				return `http://${feHost}:${PORT_BE}`;
 			}
