@@ -416,7 +416,9 @@ export default function CreateGroup({
     const displayContacts = useMemo(() => {
         const localFilteredFriends = contacts.filter(c => 
             (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-            (c.phone || '').includes(searchQuery)
+            (c.phone || '').includes(searchQuery) ||
+            (c.phoneNumber || '').includes(searchQuery) ||
+            (c.email || '').toLowerCase().includes(searchQuery.toLowerCase())
         );
         
         return Array.from(new Map([
@@ -572,6 +574,9 @@ export default function CreateGroup({
                                         <Text className="text-base font-medium">{contact.name}</Text>
                                         {contact.phoneNumber && (
                                             <Text className="text-xs text-gray-500">{contact.phoneNumber}</Text>
+                                        )}
+                                        {contact.email && (
+                                            <Text className="text-xs text-gray-400">{contact.email}</Text>
                                         )}
                                     </View>
                                     <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${selectedContacts.includes(contact.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-200'}`}>

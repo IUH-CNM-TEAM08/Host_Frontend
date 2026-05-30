@@ -184,7 +184,7 @@
     "createGroup": "Tạo nhóm",
     "create": "Tạo",
     "enterGroupName": "Nhập tên nhóm...",
-    "searchNameOrPhone": "Nhập tên, số điện thoại...",
+    "searchNameOrPhone": "Nhập tên, số điện thoại, email...",
     "chooseImageTitle": "Chọn ảnh",
     "chooseImageMessage": "Bạn có muốn chọn ảnh từ thư viện không?",
     "galleryPermissionRequired": "Bạn cần cấp quyền truy cập thư viện ảnh để sử dụng tính năng này!",

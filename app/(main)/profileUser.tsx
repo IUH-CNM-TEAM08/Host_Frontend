@@ -390,8 +390,18 @@ export default function ProfileModal({visible = true, onClose}: ProfileModalProp
                 }
             }
 
-            await ConversationService.createPrivate(user.id, externalUserId);
-            router.replace('/');
+            const createdRes: any = await ConversationService.createPrivate(user.id, externalUserId);
+            const createdConv = createdRes?.data ?? createdRes?.conversation ?? createdRes;
+            const conversationId = createdConv?._id ?? createdConv?.id ?? '';
+
+            if (conversationId) {
+                router.replace({
+                    pathname: '/(main)',
+                    params: { conversationId } as any,
+                } as any);
+            } else {
+                router.replace('/');
+            }
         } catch (error: any) {
             setToast({
                 visible: true,

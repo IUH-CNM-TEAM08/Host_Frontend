@@ -184,7 +184,7 @@
     "createGroup": "Create group",
     "create": "Create",
     "enterGroupName": "Enter group name...",
-    "searchNameOrPhone": "Enter name, phone number...",
+    "searchNameOrPhone": "Enter name, phone number, email...",
     "chooseImageTitle": "Choose image",
     "chooseImageMessage": "Do you want to pick an image from your library?",
     "galleryPermissionRequired": "You need to grant photo library permission to use this feature!",
