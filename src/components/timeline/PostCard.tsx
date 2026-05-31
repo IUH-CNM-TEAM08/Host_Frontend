@@ -717,57 +717,105 @@ export default function PostCard({ post, onUpdated, onDeleted }: PostCardProps) 
       {/* ── Divider ── */}
       <View style={{ height: 1, backgroundColor: '#f3f4f6', marginHorizontal: 14 }} />
 
-      {/* ── Action buttons ── */}
-      <View style={{ flexDirection: 'row', paddingHorizontal: 6, paddingVertical: 2 }}>
-        <TouchableOpacity
-          onPress={() => setShowReactionMenu((prev) => !prev)}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 6, borderRadius: 10 }}
-          activeOpacity={0.7}
-        >
-          <Text style={{ fontSize: 18 }}>{REACTION_OPTIONS.find((r) => r.type === userReaction)?.emoji ?? '👍'}</Text>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: '#6b7280' }}>
-            {userReaction ? REACTION_OPTIONS.find((r) => r.type === userReaction)?.label ?? 'React' : 'React'}
-          </Text>
-        </TouchableOpacity>
+      {/* ── Action buttons & Floating Reaction Menu Container ── */}
+      <View style={{ position: 'relative', zIndex: 10 }}>
+        {showReactionMenu && (
+          <View style={{
+            position: 'absolute',
+            bottom: 48,
+            left: 14,
+            flexDirection: 'row',
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            borderRadius: 30,
+            paddingHorizontal: 8,
+            paddingVertical: 6,
+            gap: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.18,
+            shadowRadius: 12,
+            elevation: 10,
+            borderWidth: 1,
+            borderColor: '#f1f5f9',
+            alignItems: 'center',
+          }}>
+            {REACTION_OPTIONS.map((reaction) => (
+              <TouchableOpacity
+                key={reaction.type}
+                onPress={() => handleReact(reaction.type)}
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: userReaction === reaction.type ? '#ede9fe' : 'transparent',
+                }}
+                activeOpacity={0.6}
+              >
+                <Text style={{ fontSize: 24 }}>{reaction.emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-        <TouchableOpacity
-          onPress={handleToggleComments}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 6, borderRadius: 10 }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name={showComments ? 'chatbubble' : 'chatbubble-outline'} size={17} color={showComments ? '#6d28d9' : '#6b7280'} />
-          <Text style={{ fontSize: 13, fontWeight: '600', color: showComments ? '#6d28d9' : '#6b7280' }}>
-            {commentCount > 0 ? `${commentCount} Bình luận` : 'Bình luận'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', paddingHorizontal: 6, paddingVertical: 2 }}>
+          <TouchableOpacity
+            onPress={() => {
+              if (userReaction) {
+                // If already reacted, tapping the button un-reacts (removes reaction) by sending same reaction
+                handleReact(userReaction);
+              } else {
+                // Otherwise show menu
+                setShowReactionMenu((prev) => !prev);
+              }
+            }}
+            onLongPress={() => setShowReactionMenu(true)}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 6, borderRadius: 10 }}
+            activeOpacity={0.7}
+          >
+            {userReaction ? (
+              <>
+                <Text style={{ fontSize: 18 }}>
+                  {REACTION_OPTIONS.find((r) => r.type === userReaction)?.emoji}
+                </Text>
+                <Text style={{
+                  fontSize: 13,
+                  fontWeight: '700',
+                  color: userReaction === 'LIKE' ? '#3b82f6' : userReaction === 'HEART' ? '#ef4444' : '#f59e0b'
+                }}>
+                  {REACTION_OPTIONS.find((r) => r.type === userReaction)?.label}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="thumbs-up-outline" size={18} color="#6b7280" />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#6b7280' }}>
+                  Thích
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleShare}
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 6, borderRadius: 10 }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-redo-outline" size={18} color="#6b7280" />
-          <Text style={{ fontSize: 13, fontWeight: '600', color: '#6b7280' }}>Chia sẻ</Text>
-        </TouchableOpacity>
-      </View>
-      {showReactionMenu ? (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 14, paddingVertical: 8 }}>
-          {REACTION_OPTIONS.map((reaction) => (
-            <TouchableOpacity
-              key={reaction.type}
-              onPress={() => handleReact(reaction.type)}
-              style={{
-                alignItems: 'center', justifyContent: 'center', padding: 8,
-                backgroundColor: userReaction === reaction.type ? '#ede9fe' : '#f8fafc',
-                borderRadius: 14,
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>{reaction.emoji}</Text>
-              <Text style={{ fontSize: 11, color: '#374151', marginTop: 4 }}>{reaction.label}</Text>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity
+            onPress={handleToggleComments}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 6, borderRadius: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={showComments ? 'chatbubble' : 'chatbubble-outline'} size={17} color={showComments ? '#6d28d9' : '#6b7280'} />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: showComments ? '#6d28d9' : '#6b7280' }}>
+              {commentCount > 0 ? `${commentCount} Bình luận` : 'Bình luận'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleShare}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 9, gap: 6, borderRadius: 10 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-redo-outline" size={18} color="#6b7280" />
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#6b7280' }}>Chia sẻ</Text>
+          </TouchableOpacity>
         </View>
-      ) : null}
+      </View>
 
       {/* ── Inline Comments Section ── */}
       {showComments && (
