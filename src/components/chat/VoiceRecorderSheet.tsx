@@ -94,8 +94,12 @@ const DeleteIcon = ({ size = 20, color = '#ef4444' }: { size?: number; color?: s
 type VoiceRecorderSheetProps = {
   visible: boolean;
   onClose: () => void;
-  /** Callback khi user chọn "Gửi voice" — trả về blob audio */
-  onSendVoice: (audioBlob: Blob, durationSeconds: number, mimeType: string) => void;
+  /**
+   * Callback khi user chọn "Gửi voice".
+   * - Web: trả về Blob (có thể dùng URL.createObjectURL)
+   * - Mobile: blob = null, uri = local file URI từ expo-av
+   */
+  onSendVoice: (audioBlob: Blob | null, durationSeconds: number, mimeType: string, uri?: string | null) => void;
   /** Callback khi user chọn "Chuyển thành text" — trả về string text */
   onConvertedText: (text: string) => void;
 };
@@ -336,14 +340,27 @@ export default function VoiceRecorderSheet({
   };
 
   const handleSendVoice = () => {
-    const blob = audioBlobRef.current;
-    if (!blob) return;
-    onSendVoice(blob, durationRef.current, mimeTypeRef.current);
+    if (Platform.OS === 'web') {
+      // Web: dùng Blob (URL.createObjectURL hoạt động bình thường)
+      const blob = audioBlobRef.current;
+      if (!blob) return;
+      onSendVoice(blob, durationRef.current, mimeTypeRef.current, null);
+    } else {
+      // Mobile: dùng URI trực tiếp, KHÔNG dùng URL.createObjectURL
+      const uri = audioUriRef.current;
+      if (!uri) return;
+      onSendVoice(null, durationRef.current, mimeTypeRef.current, uri);
+    }
     handleDiscard();
   };
 
   const handleConvertToText = async () => {
-    // Dùng Web Speech API (FREE) — text đã được thu song song khi ghi âm
+    if (Platform.OS !== 'web') {
+      // Mobile chưa hỗ trợ Speech-to-Text tự động
+      setTranscribeError('Chức năng chuyển giọng nói thành văn bản chỉ hỗ trợ trên trình duyệt web (Chrome/Edge).');
+      return;
+    }
+    // Web: dùng Web Speech API (FREE) — text đã được thu song song khi ghi âm
     const text = liveTranscript.trim();
     if (!text) {
       setTranscribeError('Không nhận dạng được giọng nói. Hãy thử nói rõ hơn hoặc dùng Chrome/Edge.');

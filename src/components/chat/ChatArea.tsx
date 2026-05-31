@@ -7844,18 +7844,30 @@ export default function ChatArea({
       <VoiceRecorderSheet
         visible={showVoiceSheet}
         onClose={() => setShowVoiceSheet(false)}
-        onSendVoice={async (audioBlob, durationSec, mimeType) => {
+        onSendVoice={async (audioBlob, durationSec, mimeType, mobileUri) => {
           try {
             const ext = mimeType === 'audio/m4a' ? 'm4a' : 'webm';
-            const uri = URL.createObjectURL(audioBlob);
-            await uploadAndSendFile({
-              uri,
-              name: `voice-${Date.now()}.${ext}`,
-              mimeType,
-              size: audioBlob.size,
-              lastModified: Date.now(),
-            } as any);
-            setTimeout(() => URL.revokeObjectURL(uri), 60_000);
+            if (Platform.OS !== 'web' && mobileUri) {
+              // Mobile: dùng URI trực tiếp từ expo-av, không cần URL.createObjectURL
+              await uploadAndSendFile({
+                uri: mobileUri,
+                name: `voice-${Date.now()}.${ext}`,
+                mimeType,
+                size: 0,
+                lastModified: Date.now(),
+              } as any);
+            } else if (audioBlob) {
+              // Web: tạo blob URL bình thường
+              const uri = URL.createObjectURL(audioBlob);
+              await uploadAndSendFile({
+                uri,
+                name: `voice-${Date.now()}.${ext}`,
+                mimeType,
+                size: audioBlob.size,
+                lastModified: Date.now(),
+              } as any);
+              setTimeout(() => URL.revokeObjectURL(uri), 60_000);
+            }
           } catch (err) {
             console.error('VoiceSheet sendVoice error:', err);
           }
