@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -208,18 +209,14 @@ export default function ZalaBotChatbox({ onBackPress }: Props) {
         )}
 
         {/* Bot avatar */}
-        <View
+        <Image
+          source={{ uri: "https://ui-avatars.com/api/?name=Z+B&background=6d28d9&color=fff&bold=true&size=84" }}
           style={{
             width: 42,
             height: 42,
             borderRadius: 21,
-            backgroundColor: "#ede9fe",
-            alignItems: "center",
-            justifyContent: "center",
           }}
-        >
-          <Ionicons name="logo-gitlab" size={24} color="#6d28d9" />
-        </View>
+        />
 
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 15, fontWeight: "700", color: "#1f2937" }}>Zala Bot</Text>
@@ -267,19 +264,15 @@ export default function ZalaBotChatbox({ onBackPress }: Props) {
           >
             {/* Bot avatar */}
             {msg.role === "bot" && (
-              <View
+              <Image
+                source={{ uri: "https://ui-avatars.com/api/?name=Z+B&background=6d28d9&color=fff&bold=true&size=60" }}
                 style={{
                   width: 30,
                   height: 30,
                   borderRadius: 15,
-                  backgroundColor: "#ede9fe",
-                  alignItems: "center",
-                  justifyContent: "center",
                   flexShrink: 0,
                 }}
-              >
-                <Ionicons name="logo-gitlab" size={18} color="#6d28d9" />
-              </View>
+              />
             )}
 
             {/* Bubble */}
@@ -331,21 +324,15 @@ export default function ZalaBotChatbox({ onBackPress }: Props) {
 
             {/* User avatar */}
             {msg.role === "user" && (
-              <View
+              <Image
+                source={{ uri: user?.avatarURL || user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "U")}&background=6d28d9&color=fff&size=60` }}
                 style={{
                   width: 30,
                   height: 30,
                   borderRadius: 15,
-                  backgroundColor: "#6d28d9",
-                  alignItems: "center",
-                  justifyContent: "center",
                   flexShrink: 0,
                 }}
-              >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: "#fff" }}>
-                  {(user?.name ?? "U").charAt(0).toUpperCase()}
-                </Text>
-              </View>
+              />
             )}
           </View>
         ))}
@@ -353,18 +340,14 @@ export default function ZalaBotChatbox({ onBackPress }: Props) {
         {/* Typing indicator */}
         {isTyping && (
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 10 }}>
-            <View
+            <Image
+              source={{ uri: "https://ui-avatars.com/api/?name=Z+B&background=6d28d9&color=fff&bold=true&size=60" }}
               style={{
                 width: 30,
                 height: 30,
                 borderRadius: 15,
-                backgroundColor: "#ede9fe",
-                alignItems: "center",
-                justifyContent: "center",
               }}
-            >
-              <Ionicons name="logo-gitlab" size={18} color="#6d28d9" />
-            </View>
+            />
             <View
               style={{
                 backgroundColor: "#fff",

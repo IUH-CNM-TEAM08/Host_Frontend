@@ -534,7 +534,7 @@ export default function ChatHeader({
           )}
         </View>
 
-        <View className="ml-3" style={{ maxWidth: "50%" }}>
+        <View className="ml-3" style={{ flex: 1, marginRight: 4 }}>
           <Text
             className="font-semibold text-gray-900 text-base"
             numberOfLines={1}
@@ -544,13 +544,14 @@ export default function ChatHeader({
           </Text>
           {/* Trạng thái online/offline cho 1-1 | số thành viên cho group */}
           {selectedChat?.isGroup ? (
-            <Text className="text-xs text-gray-500">
+            <Text className="text-xs text-gray-500" numberOfLines={1}>
               {groups?.participantIds?.length ?? 0} thành viên
               {Object.values(groupOnlineMap).filter(Boolean).length > 0 && ` • ${Object.values(groupOnlineMap).filter(Boolean).length + 1} người đang hoạt động`}
             </Text>
           ) : (
             <Text
               className={`text-xs ${otherUser?.isOnline ? "text-green-500" : "text-gray-400"}`}
+              numberOfLines={1}
             >
               {otherUser?.isOnline ? "Đang hoạt động" : "Không hoạt động"}
             </Text>
@@ -585,61 +586,7 @@ export default function ChatHeader({
             <Ionicons name="create-outline" size={22} color="#666" />
           </TouchableOpacity>
         )}
-        {!selectedChat?.isGroup && friendshipStatus !== "accepted" && (
-          <View className="flex-row items-center mr-2">
-            {friendshipStatus === "none" && (
-              <TouchableOpacity
-                className="px-2 py-1 rounded-full bg-indigo-500"
-                onPress={() => void handleSendFriendRequest()}
-                disabled={friendshipLoading}
-              >
-                <Text className="text-[10px] text-white font-semibold">
-                  {friendshipLoading ? "Đang gửi..." : "Gửi lời mời"}
-                </Text>
-              </TouchableOpacity>
-            )}
 
-            {friendshipStatus === "pending_sent" && (
-              <>
-                <View className="px-2 py-1 rounded-full bg-indigo-100 mr-1">
-                  <Text className="text-[10px] text-indigo-700 font-semibold">Đã gửi</Text>
-                </View>
-                <TouchableOpacity
-                  className="px-2 py-1 rounded-full bg-red-100"
-                  onPress={() => void handleRecallFriendRequest()}
-                  disabled={friendshipLoading}
-                >
-                  <Text className="text-[10px] text-red-600 font-semibold">
-                    {friendshipLoading ? "..." : "Thu hồi"}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {friendshipStatus === "pending_received" && (
-              <>
-                <TouchableOpacity
-                  className="px-2 py-1 rounded-full bg-blue-500 mr-1"
-                  onPress={() => void handleAcceptFriendRequest()}
-                  disabled={friendshipLoading}
-                >
-                  <Text className="text-[10px] text-white font-semibold">
-                    {friendshipLoading ? "..." : "Đồng ý"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="px-2 py-1 rounded-full bg-gray-100"
-                  onPress={() => void handleRejectFriendRequest()}
-                  disabled={friendshipLoading}
-                >
-                  <Text className="text-[10px] text-gray-700 font-semibold">
-                    {friendshipLoading ? "..." : "Từ chối"}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        )}
 
         {!callBlocked && (
           <>
@@ -687,10 +634,53 @@ export default function ChatHeader({
         )}
         {!selectedChat?.isGroup && friendshipStatus !== "accepted" && (
           <TouchableOpacity
-            onPress={onAddPeoplePress}
+            onPress={() => {
+              if (friendshipStatus === "none") {
+                void handleSendFriendRequest();
+              } else if (friendshipStatus === "pending_sent") {
+                void handleRecallFriendRequest();
+              } else if (friendshipStatus === "pending_received") {
+                void handleAcceptFriendRequest();
+              }
+            }}
+            disabled={friendshipLoading}
             className="p-2 mr-1"
           >
-            <Ionicons name="person-add-outline" size={22} color="#666" />
+            <View className="relative">
+              <Ionicons
+                name={
+                  friendshipStatus === "pending_received"
+                    ? "person-add"
+                    : friendshipStatus === "pending_sent"
+                    ? "hourglass-outline"
+                    : "person-add-outline"
+                }
+                size={22}
+                color={
+                  friendshipStatus === "pending_received"
+                    ? "#3b82f6"
+                    : friendshipStatus === "pending_sent"
+                    ? "#f59e0b"
+                    : "#666"
+                }
+              />
+              {friendshipStatus !== "none" && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -2,
+                    right: -2,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor:
+                      friendshipStatus === "pending_received" ? "#3b82f6" : "#f59e0b",
+                    borderWidth: 1.5,
+                    borderColor: "#fff",
+                  }}
+                />
+              )}
+            </View>
           </TouchableOpacity>
         )}
         <TouchableOpacity className="p-2" onPress={onInfoPress}>
