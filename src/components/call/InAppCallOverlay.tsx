@@ -380,8 +380,13 @@ export default function InAppCallOverlay() {
 
   useEffect(() => {
     if (!active) return;
+    // Lưu trạng thái hiện tại trước khi ẩn — nếu đang ở chat thì tab bar đã bị ẩn rồi
+    const wasVisible = tabBar.isVisible;
     tabBar.hideTabBar();
-    return () => tabBar.showTabBar();
+    return () => {
+      // Chỉ show lại nếu trước khi gọi nó đang visible
+      if (wasVisible) tabBar.showTabBar();
+    };
   }, [active, tabBar]);
 
   /** iframe (Expo web) báo kết thúc / mất kết nối → đóng overlay + API end */

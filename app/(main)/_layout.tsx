@@ -294,7 +294,7 @@ function AppContent() {
   const [avatar, setAvatar] = useState<ImageSourcePropType>({ uri: "" });
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
-  const [isGuideButtonCompact, setIsGuideButtonCompact] = useState(false);
+  const [isGuideButtonCompact, setIsGuideButtonCompact] = useState(true);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const { unreadCount } = useNotifications();
   const router = useRouter();
