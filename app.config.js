@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 export default {
     expo: {
-        name: "thach",
-        slug: "thach",
+        name: "Zala",
+        slug: "zala",
         version: "1.0.0",
         orientation: "portrait",
         icon: "./resources/assets/images/icon.png",
@@ -11,7 +11,7 @@ export default {
         userInterfaceStyle: "automatic",
         newArchEnabled: true,
         ios: {
-            bundleIdentifier: "com.thachtaki.thach",
+            bundleIdentifier: "com.zala.app",
             infoPlist: {
                 NSPhotoLibraryUsageDescription: "Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh nhóm.",
                 // HTTP tới IP LAN (backend dev) — không có thì iOS có thể chặn, axios báo Network Error.
@@ -21,7 +21,7 @@ export default {
             }
         },
         android: {
-            package: "com.thachtaki.thach",
+            package: "com.zala.app",
             adaptiveIcon: {
                 foregroundImage: "./resources/assets/images/adaptive-icon.png",
                 backgroundColor: "#ffffff"

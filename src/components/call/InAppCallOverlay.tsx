@@ -15,6 +15,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -25,7 +26,9 @@ import { Audio } from "expo-av";
 import { useTabBar } from "@/src/contexts/TabBarContext";
 import { useActiveCallOptional } from "@/src/contexts/ActiveCallContext";
 import { useUser } from "@/src/contexts/user/UserContext";
+import { friendshipService } from "@/src/api/services/friendship.service";
 import { conversationService } from "@/src/api/services/conversation.service";
+import { userService } from "@/src/api/services/user.service";
 import { messageService } from "@/src/api/services/message.service";
 
 const HIDE_HTML_CONTROLS_JS = `
@@ -401,7 +404,7 @@ function WebrtcFrame({
   );
 }
 /**
- * Modal chọn thành viên để thêm vào cuộc gọi.
+ * Modal chọn bạn bè để thêm vào cuộc gọi.
  */
 function AddParticipantModal({
   visible,
@@ -418,52 +421,93 @@ function AddParticipantModal({
   callType: string;
   myId: string;
 }) {
-  const [members, setMembers] = useState<any[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [inviting, setInviting] = useState<Set<string>>(new Set());
   const [invited, setInvited] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (!visible || !conversationId) return;
+    if (!visible) return;
     setLoading(true);
+    setSearch("");
     (async () => {
       try {
-        const res: any = await conversationService.getParticipants(conversationId);
-        const data = res?.data ?? res;
-        const list = Array.isArray(data?.participants)
-          ? data.participants
-          : Array.isArray(data) ? data : [];
-        // Lọc bỏ chính mình
-        setMembers(list.filter((m: any) => {
-          const id = m?.userId || m?._id || m?.id || "";
-          return String(id) !== String(myId);
-        }));
+        const res: any = await friendshipService.listAccepted();
+        const rows = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        // Parse friendship objects → user info
+        const friendUsers: any[] = [];
+        for (const row of rows) {
+          const peerId = row.senderId === myId
+            ? row.receiverId
+            : row.senderId ?? row.id;
+          if (!peerId || peerId === myId) continue;
+          if (row.name) {
+            friendUsers.push({
+              id: peerId,
+              name: row.name,
+              avatar: row.avatarURL || row.avatar || "",
+            });
+          } else {
+            try {
+              const userRes: any = await userService.getUserById(peerId);
+              if (userRes?.user) {
+                friendUsers.push({
+                  id: userRes.user.id || peerId,
+                  name: userRes.user.name || peerId,
+                  avatar: userRes.user.avatarURL || userRes.user.avatar || "",
+                });
+              } else {
+                friendUsers.push({ id: peerId, name: peerId, avatar: "" });
+              }
+            } catch {
+              friendUsers.push({ id: peerId, name: peerId, avatar: "" });
+            }
+          }
+        }
+        setFriends(friendUsers);
       } catch {
-        setMembers([]);
+        setFriends([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [visible, conversationId, myId]);
+  }, [visible, myId]);
 
-  const handleInvite = async (userId: string) => {
-    if (inviting.has(userId) || invited.has(userId)) return;
-    setInviting((s) => new Set(s).add(userId));
+  const handleInvite = async (friendId: string) => {
+    if (inviting.has(friendId) || invited.has(friendId)) return;
+    setInviting((s) => new Set(s).add(friendId));
     try {
-      // Gửi tin nhắn gọi đến người được chọn bằng cách gọi lại API
-      await messageService.makeACall(conversationId, callType);
-      setInvited((s) => new Set(s).add(userId));
+      // Tìm hoặc tạo conversation riêng với người được mời
+      let targetConvId = conversationId;
+      try {
+        const convRes: any = await conversationService.createPrivate(myId, friendId);
+        const conv = convRes?.data ?? convRes;
+        const cid = conv?.id ?? conv?._id;
+        if (cid) targetConvId = cid;
+      } catch {
+        // Conversation đã tồn tại → dùng conversationId hiện tại
+      }
+      // Gọi cho conversation đó
+      await messageService.makeACall(targetConvId, callType);
+      setInvited((s) => new Set(s).add(friendId));
       Alert.alert("Thành công", "Đã gửi lời mời tham gia cuộc gọi.");
     } catch {
       Alert.alert("Lỗi", "Không thể mời người này vào cuộc gọi.");
     } finally {
       setInviting((s) => {
         const n = new Set(s);
-        n.delete(userId);
+        n.delete(friendId);
         return n;
       });
     }
   };
+
+  const filtered = search.trim()
+    ? friends.filter((f) =>
+        String(f.name || "").toLowerCase().includes(search.toLowerCase())
+      )
+    : friends;
 
   return (
     <Modal
@@ -475,30 +519,44 @@ function AddParticipantModal({
       <View style={addStyles.overlay}>
         <View style={addStyles.sheet}>
           <View style={addStyles.header}>
-            <Text style={addStyles.title}>Thêm người vào cuộc gọi</Text>
+            <Text style={addStyles.title}>Thêm bạn bè vào cuộc gọi</Text>
             <TouchableOpacity onPress={onClose} style={addStyles.closeBtn}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
 
+          {/* Search bar */}
+          <View style={addStyles.searchWrap}>
+            <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Tìm bạn bè..."
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              style={{ flex: 1, color: "#fff", fontSize: 14, padding: 0 }}
+            />
+          </View>
+
           {loading ? (
             <View style={addStyles.loadingWrap}>
               <ActivityIndicator size="large" color="#6366f1" />
-              <Text style={addStyles.loadingText}>Đang tải thành viên...</Text>
+              <Text style={addStyles.loadingText}>Đang tải bạn bè...</Text>
             </View>
-          ) : members.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <View style={addStyles.loadingWrap}>
               <Ionicons name="people-outline" size={48} color="rgba(255,255,255,0.3)" />
-              <Text style={addStyles.loadingText}>Không có thành viên nào</Text>
+              <Text style={addStyles.loadingText}>
+                {search.trim() ? "Không tìm thấy bạn bè" : "Không có bạn bè nào"}
+              </Text>
             </View>
           ) : (
             <ScrollView style={addStyles.list}>
-              {members.map((m: any) => {
-                const uid = String(m?.userId || m?._id || m?.id || "");
-                const name = m?.name || m?.displayName || uid;
-                const avatar = m?.avatar || m?.avatarUrl || "";
-                const isInvited = invited.has(uid);
-                const isInviting = inviting.has(uid);
+              {filtered.map((f: any) => {
+                const uid = String(f.id || "");
+                const name = f.name || uid;
+                const avatar = f.avatar || "";
+                const isInvitedUser = invited.has(uid);
+                const isInvitingUser = inviting.has(uid);
                 return (
                   <View key={uid} style={addStyles.row}>
                     <Image
@@ -512,16 +570,16 @@ function AddParticipantModal({
                     <TouchableOpacity
                       style={[
                         addStyles.inviteBtn,
-                        isInvited && addStyles.invitedBtn,
+                        isInvitedUser && addStyles.invitedBtn,
                       ]}
                       onPress={() => handleInvite(uid)}
-                      disabled={isInvited || isInviting}
+                      disabled={isInvitedUser || isInvitingUser}
                     >
-                      {isInviting ? (
+                      {isInvitingUser ? (
                         <ActivityIndicator size="small" color="#fff" />
                       ) : (
                         <Text style={addStyles.inviteBtnText}>
-                          {isInvited ? "Đã mời" : "Mời"}
+                          {isInvitedUser ? "Đã mời" : "Mời"}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -571,6 +629,20 @@ const addStyles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.12)",
+    gap: 8,
   },
   loadingWrap: {
     alignItems: "center",
