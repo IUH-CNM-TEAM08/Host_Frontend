@@ -67,7 +67,7 @@ export default {
             HOST_BE: process.env.HOST_BE,
             PORT_BE: process.env.PORT_BE,
             eas: {
-                projectId: "06f447ea-f1dc-47ad-9f46-01bcc8c488e7",
+                projectId: "e7c5e4f7-26b9-4f6a-91d8-7c620978e569",
             },
         },
     },
