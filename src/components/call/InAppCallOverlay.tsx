@@ -8,8 +8,11 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,6 +24,9 @@ import { Camera } from "expo-camera";
 import { Audio } from "expo-av";
 import { useTabBar } from "@/src/contexts/TabBarContext";
 import { useActiveCallOptional } from "@/src/contexts/ActiveCallContext";
+import { useUser } from "@/src/contexts/user/UserContext";
+import { conversationService } from "@/src/api/services/conversation.service";
+import { messageService } from "@/src/api/services/message.service";
 
 const HIDE_HTML_CONTROLS_JS = `
 (function(){
@@ -45,6 +51,7 @@ type HostAction =
   | "toggleCamera"
   | "startScreenShare"
   | "toggleEffects"
+  | "addParticipant"
   | "hangUp";
 
 /* ─── Web control bar ───────────────────────────────────────────── */
@@ -98,6 +105,14 @@ function HostControlBar({
         <Text style={styles.hostLbl}>Hiệu ứng</Text>
       </TouchableOpacity>
       <TouchableOpacity
+        style={styles.hostBtn}
+        onPress={() => onAction("addParticipant")}
+        accessibilityLabel="Thêm người"
+      >
+        <Ionicons name="person-add" size={20} color="#fff" />
+        <Text style={styles.hostLbl}>Thêm</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
         style={[styles.hostBtn, styles.hostBtnDanger]}
         onPress={() => onAction("hangUp")}
         accessibilityLabel="Kết thúc cuộc gọi"
@@ -144,7 +159,7 @@ function MobileHostControlBar({
         >
           <Ionicons
             name={micMuted ? "mic-off" : "mic"}
-            size={28}
+            size={22}
             color={micMuted ? "rgba(255,255,255,0.40)" : "#fff"}
           />
           <Text style={[styles.mobileLblSm, micMuted && styles.mobileLblSmMuted]}>
@@ -160,7 +175,7 @@ function MobileHostControlBar({
         >
           <Ionicons
             name="call"
-            size={36}
+            size={28}
             color="#fff"
             style={{ transform: [{ rotate: "135deg" }] }}
           />
@@ -174,7 +189,7 @@ function MobileHostControlBar({
         >
           <Ionicons
             name={cameraMuted ? "videocam-off" : "videocam"}
-            size={28}
+            size={22}
             color={cameraMuted ? "rgba(255,255,255,0.40)" : "#fff"}
           />
           <Text style={[styles.mobileLblSm, cameraMuted && styles.mobileLblSmMuted]}>
@@ -188,8 +203,18 @@ function MobileHostControlBar({
           onPress={() => onAction("toggleEffects")}
           accessibilityLabel="Hiệu ứng"
         >
-          <Ionicons name="sparkles" size={28} color="#fff" />
+          <Ionicons name="sparkles" size={22} color="#fff" />
           <Text style={styles.mobileLblSm}>Hiệu ứng</Text>
+        </TouchableOpacity>
+
+        {/* Thêm người */}
+        <TouchableOpacity
+          style={styles.mobileBtnSm}
+          onPress={() => onAction("addParticipant")}
+          accessibilityLabel="Thêm người"
+        >
+          <Ionicons name="person-add" size={22} color="#fff" />
+          <Text style={styles.mobileLblSm}>Thêm</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -200,9 +225,11 @@ function MobileHostControlBar({
 function WebrtcFrame({
   url,
   onWebrtcCallEnded,
+  onAddParticipant,
 }: {
   url: string;
   onWebrtcCallEnded?: () => void;
+  onAddParticipant?: () => void;
 }) {
   const webRef = useRef<WebView>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -271,9 +298,13 @@ function WebrtcFrame({
         setCameraMuted((c) => !c);
         return;
       }
+      if (action === "addParticipant") {
+        onAddParticipant?.();
+        return;
+      }
       dispatchHost(action);
     },
-    [dispatchHost]
+    [dispatchHost, onAddParticipant]
   );
 
   if (!hasPermissions) {
@@ -369,6 +400,228 @@ function WebrtcFrame({
     </View>
   );
 }
+/**
+ * Modal chọn thành viên để thêm vào cuộc gọi.
+ */
+function AddParticipantModal({
+  visible,
+  onClose,
+  conversationId,
+  callSessionId,
+  callType,
+  myId,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  conversationId: string;
+  callSessionId: string;
+  callType: string;
+  myId: string;
+}) {
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [inviting, setInviting] = useState<Set<string>>(new Set());
+  const [invited, setInvited] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!visible || !conversationId) return;
+    setLoading(true);
+    (async () => {
+      try {
+        const res: any = await conversationService.getParticipants(conversationId);
+        const data = res?.data ?? res;
+        const list = Array.isArray(data?.participants)
+          ? data.participants
+          : Array.isArray(data) ? data : [];
+        // Lọc bỏ chính mình
+        setMembers(list.filter((m: any) => {
+          const id = m?.userId || m?._id || m?.id || "";
+          return String(id) !== String(myId);
+        }));
+      } catch {
+        setMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [visible, conversationId, myId]);
+
+  const handleInvite = async (userId: string) => {
+    if (inviting.has(userId) || invited.has(userId)) return;
+    setInviting((s) => new Set(s).add(userId));
+    try {
+      // Gửi tin nhắn gọi đến người được chọn bằng cách gọi lại API
+      await messageService.makeACall(conversationId, callType);
+      setInvited((s) => new Set(s).add(userId));
+      Alert.alert("Thành công", "Đã gửi lời mời tham gia cuộc gọi.");
+    } catch {
+      Alert.alert("Lỗi", "Không thể mời người này vào cuộc gọi.");
+    } finally {
+      setInviting((s) => {
+        const n = new Set(s);
+        n.delete(userId);
+        return n;
+      });
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={addStyles.overlay}>
+        <View style={addStyles.sheet}>
+          <View style={addStyles.header}>
+            <Text style={addStyles.title}>Thêm người vào cuộc gọi</Text>
+            <TouchableOpacity onPress={onClose} style={addStyles.closeBtn}>
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <View style={addStyles.loadingWrap}>
+              <ActivityIndicator size="large" color="#6366f1" />
+              <Text style={addStyles.loadingText}>Đang tải thành viên...</Text>
+            </View>
+          ) : members.length === 0 ? (
+            <View style={addStyles.loadingWrap}>
+              <Ionicons name="people-outline" size={48} color="rgba(255,255,255,0.3)" />
+              <Text style={addStyles.loadingText}>Không có thành viên nào</Text>
+            </View>
+          ) : (
+            <ScrollView style={addStyles.list}>
+              {members.map((m: any) => {
+                const uid = String(m?.userId || m?._id || m?.id || "");
+                const name = m?.name || m?.displayName || uid;
+                const avatar = m?.avatar || m?.avatarUrl || "";
+                const isInvited = invited.has(uid);
+                const isInviting = inviting.has(uid);
+                return (
+                  <View key={uid} style={addStyles.row}>
+                    <Image
+                      source={{
+                        uri: avatar ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4f46e5&color=fff`,
+                      }}
+                      style={addStyles.avatar}
+                    />
+                    <Text style={addStyles.name} numberOfLines={1}>{name}</Text>
+                    <TouchableOpacity
+                      style={[
+                        addStyles.inviteBtn,
+                        isInvited && addStyles.invitedBtn,
+                      ]}
+                      onPress={() => handleInvite(uid)}
+                      disabled={isInvited || isInviting}
+                    >
+                      {isInviting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={addStyles.inviteBtnText}>
+                          {isInvited ? "Đã mời" : "Mời"}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const addStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#141c30",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "60%",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  title: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 14,
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    gap: 12,
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#1a2438",
+  },
+  name: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  inviteBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#6366f1",
+    minWidth: 70,
+    alignItems: "center",
+  },
+  invitedBtn: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  inviteBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+});
 
 /**
  * Full-screen overlay: đang gọi / cuộc gọi đến / đang trong cuộc (iframe WebRTC).
@@ -377,6 +630,9 @@ export default function InAppCallOverlay() {
   const call = useActiveCallOptional();
   const active = call?.activeCall;
   const tabBar = useTabBar();
+  const { user } = useUser();
+  const myId = user?.id ?? "";
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     if (!active) return;
@@ -399,6 +655,11 @@ export default function InAppCallOverlay() {
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, [call]);
+
+  // Close add-participant modal when call ends
+  useEffect(() => {
+    if (!active) setShowAddModal(false);
+  }, [active]);
 
   if (!active) return null;
 
@@ -490,10 +751,21 @@ export default function InAppCallOverlay() {
             <WebrtcFrame
               url={active.webrtcUrl}
               onWebrtcCallEnded={() => void call?.hangUpConnected()}
+              onAddParticipant={() => setShowAddModal(true)}
             />
           </View>
         )}
       </View>
+
+      {/* Modal thêm người tham gia */}
+      <AddParticipantModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        conversationId={active.conversationId}
+        callSessionId={active.callSessionId}
+        callType={active.callType}
+        myId={myId}
+      />
     </View>
   );
 }
@@ -563,23 +835,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(10, 14, 26, 0.97)",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.10)",
-    paddingTop: 20,
-    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingHorizontal: 10,
     alignItems: "center",
-    gap: 14,
+    gap: 10,
   },
   mobileRowMain: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "space-evenly",
     width: "100%",
-    paddingHorizontal: 12,
+    paddingHorizontal: 4,
   },
   /** Nút End Call — to và đỏ nổi bật */
   mobileBtnEnd: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "#e11d48",
     alignItems: "center",
     justifyContent: "center",
@@ -589,23 +861,23 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  /** Nút tròn nhỏ (Mic / Camera) */
+  /** Nút tròn nhỏ (Mic / Camera / Effects / Thêm) */
   mobileBtnSm: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: "rgba(255,255,255,0.10)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 2,
   },
   mobileBtnSmActive: {
     backgroundColor: "rgba(255,255,255,0.06)",
   },
   mobileLblSm: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: "600",
     color: "rgba(255,255,255,0.80)",
   },
